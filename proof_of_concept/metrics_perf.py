@@ -10,8 +10,9 @@ import inspect
 import statistics
 import time
 import tracemalloc
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 # Import our decorator-based implementation
 from proof_of_concept.decorators import Agent, tool
@@ -21,7 +22,7 @@ from proof_of_concept.decorators import Agent, tool
 # =====================================================================
 
 
-def get_weather_func(city: str) -> Dict[str, str]:
+def get_weather_func(city: str) -> dict[str, str]:
     """Get weather for a city."""
     return {"city": city, "temp": "22°C", "condition": "sunny"}
 
@@ -43,7 +44,7 @@ class RawTool:
     name: str
     description: str
     func: Callable
-    parameters: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    parameters: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 class RawAgent:
@@ -75,8 +76,8 @@ class RawAgent:
         response = f"Processing: '{input_text}'\n"
 
         tools_used = []
-        for tool in self.tools:
-            tool_name = tool.name.lower()
+        for tool_item in self.tools:
+            tool_name = tool_item.name.lower()
             if "get_weather" in tool_name and any(
                 kw in input_text.lower()
                 for kw in ["weather", "temperature", "forecast"]
@@ -159,7 +160,7 @@ def setup_decorator_agent():
     @Agent(model="gemini-2.0", description="Weather assistant")
     class WeatherAgent:
         @tool
-        def get_weather(self, city: str) -> Dict[str, str]:
+        def get_weather(self, city: str) -> dict[str, str]:
             """
             Fetch current weather for a city.
 
@@ -186,7 +187,7 @@ def setup_decorator_agent():
 # =====================================================================
 
 
-def measure_setup_time(setup_func: Callable, iterations: int = 10) -> Dict[str, float]:
+def measure_setup_time(setup_func: Callable, iterations: int = 10) -> dict[str, float]:
     """
     Measure the time it takes to set up an agent over multiple iterations.
 
@@ -208,7 +209,7 @@ def measure_setup_time(setup_func: Callable, iterations: int = 10) -> Dict[str, 
     }
 
 
-def measure_memory_usage(func: Callable, iterations: int = 5) -> Dict[str, Any]:
+def measure_memory_usage(func: Callable, iterations: int = 5) -> dict[str, Any]:
     """
     Measure the memory usage of a function over multiple iterations.
 
@@ -236,7 +237,7 @@ def measure_memory_usage(func: Callable, iterations: int = 5) -> Dict[str, Any]:
 
 async def measure_execution_time(
     func: Callable[..., Awaitable[str]], input_text: str, iterations: int = 20
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Measure the execution time of an async function over multiple iterations.
 
@@ -263,7 +264,7 @@ async def measure_execution_time(
 # =====================================================================
 
 
-def print_stats(name: str, stats: Dict[str, float], unit: str = "seconds"):
+def print_stats(name: str, stats: dict[str, float], unit: str = "seconds"):
     """Helper function to print statistics in a consistent format."""
     print(f"{name}:")
     print(f"  Mean: {stats['mean']:.6f} {unit}")

@@ -8,16 +8,17 @@ intended to validate the approach, not for production use.
 
 import functools
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Type, Union, get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
 
 
 def tool(
     _func=None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
     cache_ttl: int = 0,
-    timeout: Optional[int] = None,
+    timeout: int | None = None,
     retries: int = 0,
 ):
     """
@@ -102,11 +103,11 @@ def tool(
 class ProviderABC:
     """Abstract base class for provider backends."""
 
-    def initialize_agent(self, metadata: Dict[str, Any]) -> Any:
+    def initialize_agent(self, metadata: dict[str, Any]) -> Any:
         """Initialize agent with the provider backend."""
         raise NotImplementedError("Subclasses must implement initialize_agent")
 
-    def register_tool(self, agent: Any, tool_metadata: Dict[str, Any]) -> None:
+    def register_tool(self, agent: Any, tool_metadata: dict[str, Any]) -> None:
         """Register a tool with the agent."""
         raise NotImplementedError("Subclasses must implement register_tool")
 
@@ -118,12 +119,12 @@ class ProviderABC:
 class SimulatedProvider(ProviderABC):
     """Simulated provider for demonstration purposes."""
 
-    def initialize_agent(self, metadata: Dict[str, Any]) -> Any:
+    def initialize_agent(self, metadata: dict[str, Any]) -> Any:
         """Initialize a simulated agent."""
         return {"type": "simulated_agent", "metadata": metadata, "tools": []}
 
     def register_tool(
-        self, agent: Dict[str, Any], tool_metadata: Dict[str, Any]
+        self, agent: dict[str, Any], tool_metadata: dict[str, Any]
     ) -> None:
         """Register a tool with the simulated agent."""
         agent["tools"].append(tool_metadata)
@@ -187,7 +188,7 @@ def Agent(*, model: str, description: str, provider: str = "simulated", **kwargs
         The decorated class with agent functionality
     """
 
-    def decorator(cls: Type) -> Type:
+    def decorator(cls: type) -> type:
         # Store agent metadata on the class
         cls._agent_metadata = {
             "model": model,
@@ -227,7 +228,7 @@ def Agent(*, model: str, description: str, provider: str = "simulated", **kwargs
                 self.provider.register_tool(self.agent, tool_metadata)
 
         # Add run method if it doesn't exist
-        if not hasattr(cls, "run") or not callable(getattr(cls, "run")):
+        if not hasattr(cls, "run") or not callable(cls.run):
 
             async def run(self, input_text: str, **kwargs) -> str:
                 """Run the agent with the given input."""

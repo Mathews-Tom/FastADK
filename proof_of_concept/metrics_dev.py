@@ -7,7 +7,7 @@ improvements in developer productivity, maintainability, and code clarity.
 
 import textwrap
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class CodeExample:
     description: str
     raw_code: str
     fastadk_code: str
-    metrics: Dict[str, Any] = None
+    metrics: dict[str, Any] = None
 
 
 def dedent(text: str) -> str:
@@ -132,7 +132,7 @@ def basic_code_examples():
 
         # Create function tools
         weather_tool = FunctionTool.from_function(
-            get_weather, 
+            get_weather,
             name="get_weather",
             description="Fetch current weather for a city."
         )
