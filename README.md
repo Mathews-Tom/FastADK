@@ -1,1 +1,3 @@
 # FastADK
+
+FastADK is an open‑source Python framework that layers ergonomic abstractions over Google ADK and Vertex AI, enabling developers to design, test, and deploy tool‑using LLM agents with minimal boilerplate. Declarative decorators, auto‑generated FastAPI routes, pluggable memory back‑ends, and built‑in observability let teams prototype locally and scale the same code seamlessly to containerised, serverless environments.

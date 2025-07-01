@@ -1,0 +1,235 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fastadk"
+description = "A developer-friendly framework for building AI agents with Google ADK"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "FastADK Team", email = "team@fastadk.dev"},
+]
+maintainers = [
+    {name = "FastADK Team", email = "team@fastadk.dev"},
+]
+keywords = [
+    "ai", "agents", "google-adk", "llm", "framework", 
+    "chatbots", "automation", "artificial-intelligence"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "typer>=0.9.0",
+    "loguru>=0.7.0",
+    "pyyaml>=6.0",
+    "aiofiles>=23.0.0",
+    "httpx>=0.25.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "ruff>=0.0.287",
+    "mypy>=1.5.0",
+    "pre-commit>=3.4.0",
+    "httpx>=0.25.0",
+]
+
+# Memory backend dependencies
+redis = [
+    "redis[hiredis]>=5.0.0",
+    "aioredis>=2.0.0",
+]
+
+firestore = [
+    "google-cloud-firestore>=2.13.0",
+]
+
+vector = [
+    "pinecone-client>=2.2.0",
+    "chromadb>=0.4.0",
+]
+
+# Cloud and deployment dependencies
+cloud = [
+    "google-cloud-storage>=2.10.0",
+    "google-cloud-logging>=3.8.0",
+]
+
+# Enterprise and security dependencies
+enterprise = [
+    "cryptography>=41.0.0",
+    "authlib>=1.2.0",
+    "python-jose[cryptography]>=3.3.0",
+]
+
+# Observability dependencies
+observability = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "prometheus-client>=0.17.0",
+]
+
+# All optional dependencies
+all = [
+    "fastadk[dev,redis,firestore,vector,cloud,enterprise,observability]",
+]
+
+[project.urls]
+Homepage = "https://github.com/fastadk/fastadk"
+Documentation = "https://docs.fastadk.dev"
+Repository = "https://github.com/fastadk/fastadk"
+"Bug Tracker" = "https://github.com/fastadk/fastadk/issues"
+Discussions = "https://github.com/fastadk/fastadk/discussions"
+Discord = "https://discord.gg/fastadk"
+
+[project.scripts]
+fastadk = "fastadk.cli.main:app"
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "B904",  # temporary ignore for exception handling in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = ["B904"]  # Allow exception handling without from clause in tests
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "google.*",
+    "aioredis.*",
+    "chromadb.*",
+    "pinecone.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=fastadk",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow tests",
+]
+
+[tool.coverage.run]
+source = ["fastadk"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.hatch.version]
+path = "src/fastadk/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fastadk"]
+
+# Security scanning configuration
+[tool.bandit]
+exclude_dirs = ["tests", "build", "dist"]
+skips = ["B101", "B601"]
+
+[tool.safety]
+# Safety configuration for vulnerability scanning
+full_report = true
+short_report = false
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.5",
+    "black>=25.1.0",
+    "mypy>=1.16.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.1",
+    "safety>=3.5.2",
+]
