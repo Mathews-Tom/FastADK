@@ -97,4 +97,4 @@ The competitive landscape analysis confirms a significant opportunity for FastAD
 
 ---
 
-*This analysis will be continuously updated as the market evolves and new competitors emerge.* docs/research/user_research.md docs/research/technical_feasibility.md
+*This analysis will be continuously updated as the market evolves and new competitors emerge.*
