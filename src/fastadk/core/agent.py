@@ -11,6 +11,7 @@ import inspect
 import logging
 import os
 import time
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, ClassVar, TypeVar
 
@@ -76,7 +77,6 @@ class ProviderABC(ABC):
         Returns:
             An internal representation of the agent instance for the provider.
         """
-        pass
 
     @abstractmethod
     async def register_tool(
@@ -89,7 +89,6 @@ class ProviderABC(ABC):
             agent_instance: The provider's internal agent representation.
             tool_metadata: The metadata of the tool to register.
         """
-        pass
 
     @abstractmethod
     async def run(self, agent_instance: Any, input_text: str, **kwargs: Any) -> str:
@@ -104,7 +103,6 @@ class ProviderABC(ABC):
         Returns:
             The final, user-facing response from the LLM.
         """
-        pass
 
 
 class BaseAgent:
