@@ -29,6 +29,17 @@ ToolFunction = Callable[..., Any]
 logger = logging.getLogger("fastadk.agent")
 
 
+class AgentMetadata(BaseModel):
+    """A Pydantic model to store structured metadata about an agent."""
+
+    name: str
+    model: str
+    description: str = ""
+    system_prompt: str | None = None
+    provider: str = "simulated"
+    tools: list["ToolMetadata"] = Field(default_factory=list)
+
+
 class ToolMetadata(BaseModel):
     """Metadata for a tool function."""
 
@@ -41,6 +52,59 @@ class ToolMetadata(BaseModel):
     enabled: bool = True  # Whether the tool is enabled
     parameters: dict[str, Any] = Field(default_factory=dict)
     return_type: type | None = None
+
+
+class ProviderABC(ABC):
+    """
+    Abstract Base Class for LLM providers.
+
+    This class defines the interface that all backend providers must implement.
+    This allows FastADK to remain model-agnostic.
+    """
+
+    @abstractmethod
+    async def initialize(self, metadata: AgentMetadata) -> Any:
+        """
+        Initializes the provider with the agent's metadata.
+
+        This is where the provider would prepare the LLM, but the actual model
+        instance might be lazy-loaded on the first run.
+
+        Args:
+            metadata: The agent's configuration.
+
+        Returns:
+            An internal representation of the agent instance for the provider.
+        """
+        pass
+
+    @abstractmethod
+    async def register_tool(
+        self, agent_instance: Any, tool_metadata: ToolMetadata
+    ) -> None:
+        """
+        Registers a tool's schema with the provider.
+
+        Args:
+            agent_instance: The provider's internal agent representation.
+            tool_metadata: The metadata of the tool to register.
+        """
+        pass
+
+    @abstractmethod
+    async def run(self, agent_instance: Any, input_text: str, **kwargs: Any) -> str:
+        """
+        Executes the main agent logic with a given input.
+
+        Args:
+            agent_instance: The provider's internal agent representation.
+            input_text: The user's prompt.
+            **kwargs: Additional data, such as the `execute_tool` callback.
+
+        Returns:
+            The final, user-facing response from the LLM.
+        """
+        pass
 
 
 class BaseAgent:

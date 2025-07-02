@@ -167,6 +167,8 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
 strict_equality = true
+# Disable specific error codes globally
+disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -176,6 +178,13 @@ module = [
     "pinecone.*",
 ]
 ignore_missing_imports = true
+
+# Special handling for the dynamic nature of the agent decorators
+[[tool.mypy.overrides]]
+module = "fastadk.core.agent"
+disallow_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"

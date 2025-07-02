@@ -24,7 +24,7 @@ __email__ = "team@fastadk.dev"
 __license__ = "MIT"
 
 # Core imports
-from .core.agent import Agent, BaseAgent, tool
+from .core.agent import Agent, BaseAgent, ProviderABC, tool
 from .core.config import get_settings
 from .core.exceptions import (
     AgentError,
@@ -40,21 +40,25 @@ from .core.exceptions import (
 
 # Version information
 __all__ = [
-    "__version__",
-    "__author__",
-    "__email__",
-    "__license__",
+    # Core classes and decorators
     "Agent",
     "BaseAgent",
+    "ProviderABC",
     "tool",
     "get_settings",
-    "FastADKError",
+    # Exceptions
     "AgentError",
     "ConfigurationError",
+    "FastADKError",
     "MemoryError",
     "PluginError",
     "ProviderError",
     "SecurityError",
     "ToolError",
     "ValidationError",
+    # Package metadata
+    "__version__",
+    "__author__",
+    "__email__",
+    "__license__",
 ]

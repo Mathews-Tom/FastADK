@@ -1,129 +1,159 @@
 """
-Example weather agent using FastADK.
+An example of a live, fully-featured weather agent built with FastADK.
 
-This example demonstrates a simple agent that provides weather information
-using the @Agent and @tool decorators.
+This agent demonstrates:
+- Using the @Agent and @tool decorators.
+- A live integration with the Gemini provider and a real-world API (wttr.in).
+- Asynchronous tool implementation using `httpx`.
+- Loading a system prompt from an external text file.
+- Type hinting for robust tool parameter handling.
+- Docstrings for automatic tool descriptions and help text.
 """
 
 import asyncio
-import random
+import logging
+from datetime import datetime
+from pathlib import Path
+
+import httpx
 
 from fastadk import Agent, BaseAgent, tool
+
+# --- Setup ---
+# Configure logging for better output during execution.
+# Setting the fastadk logger to DEBUG provides detailed framework-level insights.
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("fastadk").setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# --- Helper Function for API Calls ---
+
+
+async def _get_weather_data(city: str) -> dict | None:
+    """
+    A helper function to fetch weather data from the free wttr.in API.
+
+    Args:
+        city: The city to fetch weather data for.
+
+    Returns:
+        A dictionary containing the JSON response, or None if an error occurs.
+    """
+    url = f"https://wttr.in/{city}?format=j1"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, follow_redirects=True, timeout=10.0)
+            response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error for {city}: {e.response.status_code}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching or parsing weather for {city}: {e}")
+            return None
+
+
+# --- Agent Definition ---
+
+# Use pathlib to create a robust path to the system prompt file.
+# This ensures that the script can be run from any directory.
+prompt_path = Path(__file__).parent / "weather_agent_prompt.txt"
 
 
 @Agent(
     model="gemini-1.5-pro",
-    description="Weather assistant that provides weather information for cities",
+    description="A professional meteorologist agent using live data from wttr.in.",
+    system_prompt=prompt_path,
     provider="gemini",
 )
 class WeatherAgent(BaseAgent):
-    """An agent that provides weather information for cities."""
-
-    # City data for demo purposes
-    CITIES = {
-        "london": {"temp": "18°C", "condition": "Cloudy", "humidity": "75%"},
-        "new york": {"temp": "22°C", "condition": "Sunny", "humidity": "60%"},
-        "tokyo": {"temp": "26°C", "condition": "Rainy", "humidity": "85%"},
-        "paris": {"temp": "20°C", "condition": "Partly Cloudy", "humidity": "65%"},
-        "sydney": {"temp": "24°C", "condition": "Sunny", "humidity": "50%"},
-    }
+    """
+    This agent provides current weather conditions and multi-day forecasts
+    for any city in the world, acting as a professional meteorologist.
+    """
 
     @tool
-    def get_weather(self, city: str) -> dict[str, str]:
+    async def get_current_weather(self, city: str) -> dict[str, str]:
         """
-        Fetch current weather for a city.
+        Get the current weather for a specific city.
 
-        Args:
-            city: The name of the city to get weather for
-
-        Returns:
-            A dictionary with weather information
+        :param city: The city name, e.g., 'San Francisco', 'Tokyo', 'London'.
         """
-        city = city.lower()
-        if city in self.CITIES:
-            return self.CITIES[city]
-        else:
-            # Generate random weather for unknown cities
-            conditions = ["Sunny", "Cloudy", "Rainy", "Windy", "Foggy", "Snowy"]
-            return {
-                "city": city,
-                "temp": f"{random.randint(15, 30)}°C",
-                "condition": random.choice(conditions),
-                "humidity": f"{random.randint(30, 90)}%",
-            }
+        data = await _get_weather_data(city)
+        if not data or "current_condition" not in data:
+            return {"error": f"Could not retrieve weather for {city}."}
 
-    @tool(cache_ttl=3600)  # Cache for 1 hour
-    def get_forecast(self, city: str, days: int = 3) -> list[dict[str, str]]:
-        """
-        Get a weather forecast for the specified number of days.
-
-        Args:
-            city: The name of the city to get a forecast for
-            days: The number of days to forecast (default: 3)
-
-        Returns:
-            A list of daily forecasts
-        """
-        conditions = ["Sunny", "Cloudy", "Rainy", "Windy", "Foggy", "Snowy"]
-        return [
-            {
-                "day": f"Day {i+1}",
-                "temp": f"{random.randint(15, 30)}°C",
-                "condition": random.choice(conditions),
-                "humidity": f"{random.randint(30, 90)}%",
-            }
-            for i in range(min(days, 7))  # Limit to 7 days max
-        ]
+        current = data["current_condition"][0]
+        return {
+            "city": data["nearest_area"][0]["areaName"][0]["value"],
+            "temp_C": current["temp_C"],
+            "temp_F": current["temp_F"],
+            "feels_like_C": current["FeelsLikeC"],
+            "feels_like_F": current["FeelsLikeF"],
+            "condition": current["weatherDesc"][0]["value"],
+            "humidity": current["humidity"],
+        }
 
     @tool
-    def get_weather_alerts(self, city: str) -> list[str]:
+    async def get_weather_forecast(
+        self, city: str, days: int = 3
+    ) -> list[dict[str, str]]:
         """
-        Get any active weather alerts for a city.
+        Get the weather forecast for a city.
 
-        Args:
-            city: The name of the city to check for alerts
-
-        Returns:
-            A list of active weather alerts
+        :param city: The city name, e.g., 'Paris', 'New York'.
+        :param days: The number of days for the forecast (must be between 1 and 3).
         """
-        # Randomly return an alert or an empty list
-        if random.random() < 0.3:  # 30% chance of an alert
-            alerts = [
-                "Flood warning in effect until tomorrow morning",
-                "High wind advisory for the next 6 hours",
-                "Thunderstorm watch in effect",
-                "Heat advisory issued for today",
-                "Air quality alert - moderate pollution levels",
-            ]
-            return [random.choice(alerts)]
-        return []
+        # The model might pass a float, so we robustly cast it to an integer.
+        try:
+            days = int(days)
+            if not 1 <= days <= 3:
+                return [{"error": "Number of forecast days must be between 1 and 3."}]
+        except (ValueError, TypeError):
+            return [{"error": "The 'days' parameter must be a valid integer."}]
 
+        data = await _get_weather_data(city)
+        if not data or "weather" not in data:
+            return [{"error": f"Could not retrieve forecast for {city}."}]
 
-async def main():
-    """Run the weather agent with example queries."""
-    agent = WeatherAgent()
+        forecasts = []
+        for day_data in data["weather"][:days]:
+            try:
+                date = datetime.strptime(day_data["date"], "%Y-%m-%d").strftime(
+                    "%A, %b %d"
+                )
+                forecasts.append(
+                    {
+                        "date": date,
+                        "avg_temp_C": day_data["avgtempC"],
+                        "avg_temp_F": day_data["avgtempF"],
+                        "condition": day_data["hourly"][4]["weatherDesc"][0]["value"],
+                    }
+                )
+            except (KeyError, IndexError) as e:
+                logger.warning(f"Could not parse part of the forecast data: {e}")
 
-    # Ask about current weather
-    query = "What's the weather like in London today?"
-    print(f"\nQuery: {query}")
-    response = await agent.run(query)
-    print(f"Response: {response}")
+        return forecasts
 
-    # Ask about forecast
-    query = "What's the forecast for Tokyo for the next 5 days?"
-    print(f"\nQuery: {query}")
-    response = await agent.run(query)
-    print(f"Response: {response}")
+    # --- Lifecycle Hooks (Optional) ---
 
-    # Ask about weather alerts
-    query = "Are there any weather alerts for New York?"
-    print(f"\nQuery: {query}")
-    response = await agent.run(query)
-    print(f"Response: {response}")
+    async def on_start(self, input_text: str, **kwargs) -> None:
+        """This hook is called before the agent processes the input."""
+        logger.info(f"WeatherAgent LIVE processing: '{input_text}'")
 
-    # See which tools were used
-    print(f"\nTools used in the last query: {agent.tools_used}")
+    async def on_finish(self, response: str, **kwargs) -> None:
+        """This hook is called after the agent generates a final response."""
+        logger.info(f"WeatherAgent LIVE response length: {len(response)}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # This block allows for direct execution of the script for quick testing.
+    # It demonstrates how to instantiate and run the agent programmatically.
+    async def test_agent():
+        agent = WeatherAgent()
+
+        print("\n--- Testing Agent with a sample query ---")
+        response = await agent.run("What's the weather like in London?")
+        print(f"\nFinal Response:\n{response}")
+
+    asyncio.run(test_agent())
