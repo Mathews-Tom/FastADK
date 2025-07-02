@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import Any, ClassVar, Optional, TypeVar, Union, cast, get_type_hints
+from typing import Any, ClassVar, TypeVar, cast, get_type_hints
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -258,12 +258,12 @@ T = TypeVar("T", bound=Callable[..., Any])
 
 
 def tool(
-    _func: Optional[T] = None,
+    _func: T | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
     **kwargs: Any,
-) -> Union[Callable[[T], T], T]:
+) -> Callable[[T], T] | T:
     """
     A decorator to register a class method as a tool available to an agent.
 
@@ -315,7 +315,7 @@ def tool(
                 return func(*args, **kwargs)
 
         # Apply the tool metadata to the wrapper function
-        setattr(async_wrapper, "_tool_metadata", meta)
+        async_wrapper._tool_metadata = meta
         return cast(T, async_wrapper)
 
     return decorator if _func is None else decorator(_func)
@@ -323,10 +323,10 @@ def tool(
 
 def Agent(
     *,
-    name: Optional[str] = None,
+    name: str | None = None,
     model: str,
-    description: Optional[str] = None,
-    system_prompt: Optional[Union[str, Path]] = None,
+    description: str | None = None,
+    system_prompt: str | Path | None = None,
     provider: str = "simulated",
     **kwargs: Any,
 ) -> Callable[[type], type]:
@@ -369,7 +369,7 @@ def Agent(
         for attr in dir(cls):
             obj = getattr(cls, attr)
             if hasattr(obj, "_tool_metadata"):
-                tools[attr] = getattr(obj, "_tool_metadata")
+                tools[attr] = obj._tool_metadata
 
         # Store tools using a more type-safe approach
         # Manually adding an attribute to the class
