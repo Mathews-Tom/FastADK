@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import Any, ClassVar, get_type_hints
+from typing import Any, ClassVar, Optional, TypeVar, Union, cast, get_type_hints
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -78,7 +78,6 @@ class ProviderABC(ABC):
         Returns:
             An internal representation of the agent instance for the provider.
         """
-        pass
 
     @abstractmethod
     async def register_tool(
@@ -91,10 +90,9 @@ class ProviderABC(ABC):
             agent_instance: The provider's internal agent representation.
             tool_metadata: The metadata of the tool to register.
         """
-        pass
 
     @abstractmethod
-    async def run(self, agent_instance: Any, input_text: str, **kwargs) -> str:
+    async def run(self, agent_instance: Any, input_text: str, **kwargs: Any) -> str:
         """
         Executes the main agent logic with a given input.
 
@@ -106,7 +104,6 @@ class ProviderABC(ABC):
         Returns:
             The final, user-facing response from the LLM.
         """
-        pass
 
 
 # --- Concrete Provider Implementations ---
@@ -115,7 +112,7 @@ class ProviderABC(ABC):
 class SimulatedProvider(ProviderABC):
     """A mock provider for development and testing that does not make real API calls."""
 
-    async def initialize(self, m: AgentMetadata) -> dict:
+    async def initialize(self, m: AgentMetadata) -> dict[str, Any]:
         """Initializes a simulated agent instance."""
         return {"metadata": m.model_dump(), "tools": []}
 
@@ -123,9 +120,9 @@ class SimulatedProvider(ProviderABC):
         """Registers a tool with the simulated agent."""
         i["tools"].append(t.model_dump())
 
-    async def run(self, i: Any, t: str, **kwargs) -> str:
+    async def run(self, agent_instance: Any, input_text: str, **kwargs: Any) -> str:
         """Returns a simple, predictable response for testing."""
-        return f"Simulated response for: '{t}'"
+        return f"Simulated response for: '{input_text}'"
 
 
 class GeminiProvider(ProviderABC):
@@ -141,7 +138,7 @@ class GeminiProvider(ProviderABC):
         "dict": "OBJECT",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the Gemini provider by loading the API key and configuring the library.
 
@@ -165,12 +162,12 @@ class GeminiProvider(ProviderABC):
                 "to use the GeminiProvider. Please install them."
             )
 
-    async def initialize(self, metadata: AgentMetadata) -> dict:
+    async def initialize(self, metadata: AgentMetadata) -> dict[str, Any]:
         """Prepares the agent instance but lazy-loads the actual model."""
         return {"metadata": metadata.model_dump(), "model": None, "tools": []}
 
     async def register_tool(
-        self, agent_instance: dict, tool_metadata: ToolMetadata
+        self, agent_instance: dict[str, Any], tool_metadata: ToolMetadata
     ) -> None:
         """Converts FastADK tool metadata into the format required by the Gemini API."""
         properties, required = {}, []
@@ -192,7 +189,7 @@ class GeminiProvider(ProviderABC):
         )
         agent_instance["tools"].append(declaration)
 
-    async def run(self, agent_instance: dict, input_text: str, **kwargs) -> str:
+    async def run(self, agent_instance: dict[str, Any], input_text: str, **kwargs: Any) -> str:
         """
         Runs the agent, handling the full logic cycle of prompting, tool calling,
         and generating a final response.
@@ -215,7 +212,7 @@ class GeminiProvider(ProviderABC):
         try:
             part = response.candidates[0].content.parts[0]
             if not part.function_call:
-                return response.text
+                return str(response.text)
 
             # --- Tool Calling Logic ---
             fc = part.function_call
@@ -243,10 +240,10 @@ class GeminiProvider(ProviderABC):
             )
 
             final_response = await asyncio.to_thread(chat.send_message, second_prompt)
-            return final_response.text
+            return str(final_response.text)
 
         except Exception as e:
-            logger.error(f"Error during agent run: {e}", exc_info=True)
+            logger.error("Error during agent run: %s", e, exc_info=True)
             return f"An error occurred: {e}"
 
 
@@ -255,9 +252,11 @@ PROVIDER_REGISTRY = {"simulated": SimulatedProvider, "gemini": GeminiProvider}
 # --- Core Decorators ---
 
 
+T = TypeVar('T', bound=Callable[..., Any])
+
 def tool(
-    _func=None, *, name: str | None = None, description: str | None = None, **kwargs
-):
+    _func: Optional[T] = None, *, name: Optional[str] = None, description: Optional[str] = None, **kwargs: Any
+) -> Union[Callable[[T], T], T]:
     """
     A decorator to register a class method as a tool available to an agent.
 
@@ -270,7 +269,7 @@ def tool(
                         first line of the function's docstring.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         tool_name = name or func.__name__
         doc = (func.__doc__ or "").strip()
         tool_desc = doc.split("\n")[0]
@@ -281,7 +280,7 @@ def tool(
             if p_name == "self":
                 continue
             params[p_name] = {
-                "description": "",
+                "description": description,
                 "type": getattr(type_hints.get(p_name, Any), "__name__", "any").lower(),
                 "required": p.default is inspect.Parameter.empty,
             }
@@ -301,28 +300,29 @@ def tool(
         )
 
         # The wrapper must be async to handle both sync and async tool functions.
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        @wraps(func)  # type: ignore
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             if inspect.iscoroutinefunction(func):
                 return await func(*args, **kwargs)
             else:
                 return func(*args, **kwargs)
 
-        async_wrapper._tool_metadata = meta
-        return async_wrapper
+        # Apply the tool metadata to the wrapper function
+        setattr(async_wrapper, "_tool_metadata", meta)
+        return cast(T, async_wrapper)
 
     return decorator if _func is None else decorator(_func)
 
 
 def Agent(
     *,
-    name: str | None = None,
+    name: Optional[str] = None,
     model: str,
-    description: str | None = None,
-    system_prompt: str | Path | None = None,
+    description: Optional[str] = None,
+    system_prompt: Optional[Union[str, Path]] = None,
     provider: str = "simulated",
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Callable[[type], type]:
     """
     A class decorator that transforms a Python class into a fully functional AI agent.
 
@@ -354,29 +354,35 @@ def Agent(
             system_prompt=prompt_text,
             provider=provider,
         )
-        cls._agent_metadata = metadata
-        cls._tools = {
-            attr: getattr(cls, attr)._tool_metadata
-            for attr in dir(cls)
-            if hasattr(getattr(cls, attr), "_tool_metadata")
-        }
+        # Set class attributes
+        cls._agent_metadata = metadata  # type: ignore
+        
+        # Find all tool methods on the class
+        tools = {}
+        for attr in dir(cls):
+            obj = getattr(cls, attr)
+            if hasattr(obj, "_tool_metadata"):
+                tools[attr] = getattr(obj, "_tool_metadata")
+        
+        # Store tools
+        cls._tools = tools  # type: ignore
 
         original_init = cls.__init__
 
-        @wraps(original_init)
-        def init_wrapper(self, *args, **kwargs):
+        @wraps(original_init)  # type: ignore
+        def init_wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             original_init(self, *args, **kwargs)
             self.provider = PROVIDER_REGISTRY[provider]()
             self._initialized = False
             self._metadata = metadata
             self._tool_metadata = list(cls._tools.values())
 
-        async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
+        async def execute_tool(self: Any, tool_name: str, **kwargs: Any) -> Any:
             """Executes a tool method on the agent instance by its name."""
             method = getattr(self, tool_name)
             return await method(**kwargs)
 
-        async def run(self, input_text: str, **kwargs: Any) -> str:
+        async def run(self: Any, input_text: str, **kwargs: Any) -> str:
             """
             Initializes the agent if needed, then runs the main execution logic.
             This method is attached to the decorated class, replacing the placeholder
@@ -389,9 +395,11 @@ def Agent(
                 self._initialized = True
 
             kwargs["execute_tool"] = self.execute_tool
-            return await self.provider.run(self.agent_instance, input_text, **kwargs)
+            result = await self.provider.run(self.agent_instance, input_text, **kwargs)
+            return str(result)
 
-        # Attach the implemented methods to the decorated class.
+        # Attach the implemented methods to the decorated class
+        # We're setting attributes on the class here, not instances
         cls.__init__ = init_wrapper
         cls.run = run
         cls.execute_tool = execute_tool
@@ -411,9 +419,8 @@ class BaseAgent:
 
     _agent_metadata: ClassVar[AgentMetadata]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """The __init__ method is preserved for your own initialization logic."""
-        pass
 
     async def run(self, input_text: str, **kwargs: Any) -> str:
         """This method is dynamically implemented by the @Agent decorator."""
@@ -424,14 +431,11 @@ class BaseAgent:
         raise NotImplementedError
 
     # --- Lifecycle Hooks ---
-    async def on_start(self, input_text: str, **kwargs) -> None:
+    async def on_start(self, input_text: str, **kwargs: Any) -> None:
         """A hook that runs at the beginning of the agent's execution cycle."""
-        pass
 
-    async def on_finish(self, response: str, **kwargs) -> None:
+    async def on_finish(self, response: str, **kwargs: Any) -> None:
         """A hook that runs after the agent has generated a final response."""
-        pass
 
-    async def on_error(self, error: Exception, **kwargs) -> None:
+    async def on_error(self, error: Exception, **kwargs: Any) -> None:
         """A hook that runs if an exception occurs during the agent's execution."""
-        pass
