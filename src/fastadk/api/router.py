@@ -7,6 +7,7 @@ This module provides the FastAPI router for serving FastADK agents via HTTP.
 import logging
 import time
 import uuid
+from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, FastAPI, HTTPException, Path, Query
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -326,7 +327,7 @@ def create_api_router() -> APIRouter:
         # This is a placeholder for streaming functionality
         # Actual implementation will be added in Phase 3
         # For now, return a simple message
-        async def fake_stream():
+        async def fake_stream() -> AsyncIterator[str]:
             yield f"Streaming not yet implemented for agent {agent_name}\n"
             yield "This feature will be available in Phase 3\n"
 
@@ -380,11 +381,11 @@ def create_app() -> FastAPI:
     app.include_router(create_api_router())
 
     @app.on_event("startup")
-    async def startup_event():
+    async def startup_event() -> None:
         logger.info("FastADK API starting up")
-
+    
     @app.on_event("shutdown")
-    async def shutdown_event():
+    async def shutdown_event() -> None:
         logger.info("FastADK API shutting down")
 
     return app
