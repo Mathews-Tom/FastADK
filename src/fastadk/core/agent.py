@@ -1,0 +1,392 @@
+"""
+Core agent module containing BaseAgent class and decorator implementations.
+
+This module provides the foundation for agent creation in FastADK,
+including the BaseAgent class and @Agent and @tool decorators.
+"""
+
+import asyncio
+import functools
+import inspect
+import logging
+import os
+import time
+from collections.abc import Callable
+from typing import Any, ClassVar, TypeVar
+
+import google.generativeai as genai
+from pydantic import BaseModel, Field
+
+from .config import get_settings
+from .exceptions import AgentError, ConfigurationError, ToolError
+
+# Type definitions
+T = TypeVar("T")
+AgentMethod = Callable[..., Any]
+ToolFunction = Callable[..., Any]
+
+# Setup logging
+logger = logging.getLogger("fastadk.agent")
+
+
+class ToolMetadata(BaseModel):
+    """Metadata for a tool function."""
+
+    name: str
+    description: str
+    function: Callable[..., Any]
+    cache_ttl: int = 0  # Time-to-live for cached results in seconds
+    timeout: int = 30  # Timeout in seconds
+    retries: int = 0  # Number of retries on failure
+    enabled: bool = True  # Whether the tool is enabled
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    return_type: type | None = None
+
+
+class BaseAgent:
+    """
+    Base class for all FastADK agents.
+
+    This class provides the core functionality for agent creation,
+    tool management, and execution.
+    """
+
+    # Class variables for storing agent metadata
+    _tools: ClassVar[dict[str, ToolMetadata]] = {}
+    _model_name: ClassVar[str] = "gemini-1.5-pro"
+    _description: ClassVar[str] = "A FastADK agent"
+    _provider: ClassVar[str] = "gemini"
+
+    def __init__(self) -> None:
+        """Initialize the agent with configuration settings."""
+        self.settings = get_settings()
+        self.tools: dict[str, ToolMetadata] = {}
+        self.tools_used: list[str] = []
+        self.session_id: str | None = None
+        self.memory_data: dict[str, Any] = {}
+
+        # Initialize tools from class metadata
+        self._initialize_tools()
+
+        # Initialize model based on configuration
+        self._initialize_model()
+
+        logger.info(
+            "Initialized agent %s with %d tools",
+            self.__class__.__name__,
+            len(self.tools),
+        )
+
+    def _initialize_tools(self) -> None:
+        """Initialize tools from class metadata."""
+        # Copy tools from class variable to instance
+        self.tools = {}
+
+        # Add any instance methods decorated as tools
+        for name, method in inspect.getmembers(self, inspect.ismethod):
+            if hasattr(method, "_is_tool") and method._is_tool:
+                metadata = getattr(method, "_tool_metadata", {})
+                self.tools[name] = ToolMetadata(
+                    name=name,
+                    description=metadata.get("description", method.__doc__ or ""),
+                    function=method,
+                    cache_ttl=metadata.get("cache_ttl", 0),
+                    timeout=metadata.get("timeout", 30),
+                    retries=metadata.get("retries", 0),
+                    enabled=metadata.get("enabled", True),
+                    parameters=metadata.get("parameters", {}),
+                    return_type=metadata.get("return_type", None),
+                )
+
+    def _initialize_model(self) -> None:
+        """Initialize the AI model based on configuration."""
+        try:
+            if self._provider == "gemini":
+                # Initialize Gemini model
+                # Using getattr to avoid FieldInfo errors in IDE
+                api_key_var = getattr(
+                    self.settings.model, "api_key_env_var", "GEMINI_API_KEY"
+                )
+                api_key = os.environ.get(api_key_var)
+
+                if api_key:
+                    genai.configure(api_key=api_key)
+                    # Set default Gemini configuration
+                    self.model = genai.GenerativeModel(self._model_name)
+                    logger.info("Initialized Gemini model %s", self._model_name)
+                else:
+                    # For tests, use a mock model if no API key is available
+                    from fastadk.testing.utils import MockModel
+
+                    self.model = MockModel()
+                    logger.info(
+                        "Using mock model for %s (no API key available)",
+                        self._model_name,
+                    )
+            else:
+                # For now, only Gemini is supported
+                raise ConfigurationError(
+                    f"Unsupported provider: {self._provider}. Only 'gemini' is currently supported."
+                )
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize model: {e}") from e
+
+    async def run(self, user_input: str) -> str:
+        """
+        Run the agent with the given user input.
+
+        This method processes the user input, potentially executes tools,
+        and returns a response from the agent.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The agent's response as a string
+        """
+        start_time = time.time()
+        self.tools_used = []  # Reset tools used for this run
+
+        try:
+            # Simple implementation for now - just pass to model
+            # In future versions, this will handle tool calling and memory
+            response = await self._generate_response(user_input)
+
+            # Log execution time
+            execution_time = time.time() - start_time
+            logger.info("Agent execution completed in %.2fs", execution_time)
+
+            return response
+        except Exception as e:
+            logger.error("Error during agent execution: %s", e, exc_info=True)
+            raise AgentError(f"Failed to process input: {e}") from e
+
+    async def _generate_response(self, user_input: str) -> str:
+        """Generate a response from the model."""
+        try:
+            # Simple implementation - just generate text
+            response = await asyncio.to_thread(
+                lambda: self.model.generate_content(user_input).text
+            )
+            return str(response)
+        except Exception as e:
+            logger.error("Error generating response: %s", e, exc_info=True)
+            raise AgentError(f"Failed to generate response: {e}") from e
+
+    async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
+        """
+        Execute a tool by name with the given arguments.
+
+        Args:
+            tool_name: The name of the tool to execute
+            **kwargs: Arguments to pass to the tool
+
+        Returns:
+            The result of the tool execution
+        """
+        if tool_name not in self.tools:
+            raise ToolError(f"Tool '{tool_name}' not found")
+
+        tool = self.tools[tool_name]
+        if not tool.enabled:
+            raise ToolError(f"Tool '{tool_name}' is disabled")
+
+        self.tools_used.append(tool_name)
+        logger.info("Executing tool '%s' with args: %s", tool_name, kwargs)
+
+        # Execute with timeout and retry logic
+        remaining_retries = tool.retries
+        while True:
+            try:
+                # Execute tool with timeout
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(lambda: tool.function(**kwargs)),
+                    timeout=tool.timeout,
+                )
+                return result
+
+            except asyncio.TimeoutError:
+                logger.warning("Tool '%s' timed out after %ds", tool_name, tool.timeout)
+                if remaining_retries > 0:
+                    remaining_retries -= 1
+                    logger.info(
+                        "Retrying tool '%s', %d retries left",
+                        tool_name,
+                        remaining_retries,
+                    )
+                    continue
+                raise ToolError(
+                    f"Tool '{tool_name}' timed out and max retries exceeded"
+                ) from None
+
+            except Exception as e:
+                logger.error(
+                    "Error executing tool '%s': %s", tool_name, e, exc_info=True
+                )
+                if remaining_retries > 0:
+                    remaining_retries -= 1
+                    logger.info(
+                        "Retrying tool '%s', %d retries left",
+                        tool_name,
+                        remaining_retries,
+                    )
+                    continue
+                raise ToolError(f"Tool '{tool_name}' failed: {e}") from e
+
+    def on_start(self) -> None:
+        """Hook called when the agent starts processing a request."""
+
+    def on_finish(self, result: str) -> None:
+        """Hook called when the agent finishes processing a request."""
+
+    def on_error(self, error: Exception) -> None:
+        """Hook called when the agent encounters an error."""
+
+
+def Agent(
+    model: str = "gemini-1.5-pro",
+    description: str = "",
+    provider: str = "gemini",
+    **kwargs: Any,
+) -> Callable[[type[T]], type[T]]:
+    """
+    Decorator for creating FastADK agents.
+
+    Args:
+        model: The name of the model to use
+        description: Description of the agent
+        provider: The provider to use (gemini, etc.)
+        **kwargs: Additional configuration options
+
+    Returns:
+        A decorator function that modifies the agent class
+    """
+
+    def decorator(cls: type[T]) -> type[T]:
+        # Store metadata on the class
+        cls._model_name = model
+        cls._description = description or cls.__doc__ or ""
+        cls._provider = provider
+
+        # Add any additional kwargs as class variables
+        for key, value in kwargs.items():
+            setattr(cls, f"_{key}", value)
+
+        return cls
+
+    return decorator
+
+
+def tool(
+    cache_ttl: int = 0,
+    timeout: int = 30,
+    retries: int = 0,
+    enabled: bool = True,
+    **kwargs: Any,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Decorator for tool functions that can be used by agents.
+
+    Args:
+        cache_ttl: Time-to-live for cached results in seconds
+        timeout: Timeout in seconds
+        retries: Number of retries on failure
+        enabled: Whether the tool is enabled
+        **kwargs: Additional metadata for the tool
+
+    Returns:
+        A decorator function that registers the tool
+    """
+    # Handle usage as @tool without parentheses
+    if callable(cache_ttl):
+        func = cache_ttl
+
+        # Create a decorator with default values and apply it
+        decorator_with_defaults = tool(cache_ttl=0, timeout=30, retries=0, enabled=True)
+        return decorator_with_defaults(func)
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        # Get tool metadata from docstring and signature
+        description = func.__doc__ or ""
+        sig = inspect.signature(func)
+        parameters = {}
+        return_type = (
+            sig.return_annotation
+            if sig.return_annotation != inspect.Signature.empty
+            else None
+        )
+
+        # Process parameters
+        for param_name, param in sig.parameters.items():
+            if param_name == "self":
+                continue
+
+            param_type = (
+                param.annotation if param.annotation != inspect.Signature.empty else Any
+            )
+            parameters[param_name] = {
+                "type": param_type,
+                "required": param.default == inspect.Parameter.empty,
+            }
+
+        # Create tool metadata
+        tool_metadata = {
+            "description": description,
+            "cache_ttl": cache_ttl,
+            "timeout": timeout,
+            "retries": retries,
+            "enabled": enabled,
+            "parameters": parameters,
+            "return_type": return_type,
+        }
+        tool_metadata.update(kwargs)
+
+        # Store metadata on the function
+        func._is_tool = True  # type: ignore
+        func._tool_metadata = tool_metadata  # type: ignore
+
+        # For standalone functions (not methods), register now
+        if not any(param.name == "self" for param in sig.parameters.values()):
+            # This is a standalone function, not a method
+            # Register it with the global registry
+            name = kwargs.get("name", func.__name__)
+            BaseAgent._tools[name] = ToolMetadata(
+                name=name,
+                description=description,
+                function=func,
+                cache_ttl=cache_ttl,
+                timeout=timeout,
+                retries=retries,
+                enabled=enabled,
+                parameters=parameters,
+                return_type=return_type,
+            )
+
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # If this is the first time the method is called through the instance
+            # make sure it's registered in the instance's tools dictionary
+            if args and hasattr(args[0], "tools") and isinstance(args[0], BaseAgent):
+                self_obj = args[0]
+                method_name = func.__name__
+
+                # Register the method in the instance's tools if not already there
+                if method_name not in self_obj.tools:
+                    self_obj.tools[method_name] = ToolMetadata(
+                        name=method_name,
+                        description=description,
+                        function=func.__get__(self_obj, type(self_obj)),
+                        cache_ttl=cache_ttl,
+                        timeout=timeout,
+                        retries=retries,
+                        enabled=enabled,
+                        parameters=parameters,
+                        return_type=return_type,
+                    )
+
+            # Execute the original function
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
