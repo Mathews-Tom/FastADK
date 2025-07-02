@@ -15,16 +15,15 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, ClassVar, TypeVar
 
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
-
 import google.generativeai as genai
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from .config import get_settings
 from .exceptions import AgentError, ConfigurationError, ToolError
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Type definitions
 T = TypeVar("T")
