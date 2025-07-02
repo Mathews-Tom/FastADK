@@ -9,7 +9,7 @@ Example:
     ```python
     from fastadk import Agent, tool, BaseAgent
 
-    @Agent(model="gemini-2.0", description="Weather assistant")
+    @Agent(model="gemini-1.5-pro", description="Weather assistant")
     class WeatherAgent(BaseAgent):
         @tool
         def get_weather(self, city: str) -> dict:
@@ -18,18 +18,24 @@ Example:
     ```
 """
 
-__version__ = "0.0.1"
+__version__ = "0.0.3"  # Updated for Phase 1.5
 __author__ = "FastADK Team"
 __email__ = "team@fastadk.dev"
 __license__ = "MIT"
 
 # Core imports
 from .core.agent import Agent, BaseAgent, ProviderABC, tool
+from .core.config import get_settings
 from .core.exceptions import (
     AgentError,
     ConfigurationError,
     FastADKError,
+    MemoryError,
+    PluginError,
+    ProviderError,
+    SecurityError,
     ToolError,
+    ValidationError,
 )
 
 # Version information
@@ -39,11 +45,17 @@ __all__ = [
     "BaseAgent",
     "ProviderABC",
     "tool",
+    "get_settings",
     # Exceptions
     "AgentError",
     "ConfigurationError",
     "FastADKError",
+    "MemoryError",
+    "PluginError",
+    "ProviderError",
+    "SecurityError",
     "ToolError",
+    "ValidationError",
     # Package metadata
     "__version__",
     "__author__",

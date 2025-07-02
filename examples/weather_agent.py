@@ -62,7 +62,7 @@ prompt_path = Path(__file__).parent / "weather_agent_prompt.txt"
 
 @Agent(
     model="gemini-1.5-pro",
-    description="A professional meteorologist agent using live data from wttr.in.",
+    description="A professional meteorologist agent using live data",
     system_prompt=prompt_path,
     provider="gemini",
 )
@@ -73,7 +73,7 @@ class WeatherAgent(BaseAgent):
     """
 
     @tool
-    async def get_current_weather(self, city: str) -> dict[str, str]:
+    async def get_current_weather(self, city: str) -> dict:
         """
         Get the current weather for a specific city.
 
@@ -95,9 +95,7 @@ class WeatherAgent(BaseAgent):
         }
 
     @tool
-    async def get_weather_forecast(
-        self, city: str, days: int = 3
-    ) -> list[dict[str, str]]:
+    async def get_weather_forecast(self, city: str, days: int = 3) -> list:
         """
         Get the weather forecast for a city.
 
