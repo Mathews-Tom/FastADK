@@ -316,7 +316,7 @@ def tool(
 
         # Apply the tool metadata to the wrapper function
         # Use setattr instead of direct assignment for better type compatibility
-        setattr(async_wrapper, "_tool_metadata", meta)  # type: ignore
+        async_wrapper._tool_metadata = meta  # type: ignore
         return cast(T, async_wrapper)
 
     return decorator if _func is None else decorator(_func)
