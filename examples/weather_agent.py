@@ -73,7 +73,7 @@ class WeatherAgent(BaseAgent):
     """
 
     @tool
-    async def get_current_weather(self, city: str) -> dict[str, str]:
+    async def get_current_weather(self, city: str) -> dict:
         """
         Get the current weather for a specific city.
 
@@ -97,7 +97,7 @@ class WeatherAgent(BaseAgent):
     @tool
     async def get_weather_forecast(
         self, city: str, days: int = 3
-    ) -> list[dict[str, str]]:
+    ) -> list:
         """
         Get the weather forecast for a city.
 
