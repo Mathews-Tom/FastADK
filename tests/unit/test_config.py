@@ -65,14 +65,16 @@ class TestConfigFileLoading:
         """Test loading configuration from a YAML file."""
         # Create a test config file
         config_path = tmp_path / "test_config.yaml"
-        config_path.write_text("""
+        config_path.write_text(
+            """
 environment: prod
 model:
   model_name: gemini-1.5-flash
   timeout_seconds: 60
 telemetry:
   log_level: error
-""")
+"""
+        )
 
         # Test with explicit config path
         with patch.dict(os.environ, {"FASTADK_CONFIG_PATH": str(config_path)}):
