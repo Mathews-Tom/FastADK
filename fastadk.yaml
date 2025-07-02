@@ -1,0 +1,36 @@
+# FastADK Configuration File
+
+# General settings
+environment: dev  # dev, prod, test
+
+# Model configuration
+model:
+  provider: gemini
+  model_name: gemini-1.5-pro
+  api_key_env_var: GEMINI_API_KEY
+  timeout_seconds: 30
+  max_retries: 3
+
+# Memory backend configuration
+memory:
+  backend_type: inmemory  # inmemory, redis, firestore
+  ttl_seconds: 3600
+
+# Telemetry and observability
+telemetry:
+  enabled: true
+  log_level: debug  # debug, info, warning, error, critical
+  metrics_enabled: false
+  tracing_enabled: false
+  anonymize_data: true
+
+# Security configuration
+security:
+  content_filtering: true
+  pii_detection: false
+  audit_logging: false
+  max_token_limit: 4096
+
+# Framework settings
+plugin_paths: []
+auto_reload: true
