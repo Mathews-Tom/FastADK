@@ -315,7 +315,8 @@ def tool(
                 return func(*args, **kwargs)
 
         # Apply the tool metadata to the wrapper function
-        async_wrapper._tool_metadata = meta
+        # Use setattr instead of direct assignment for better type compatibility
+        setattr(async_wrapper, "_tool_metadata", meta)  # type: ignore
         return cast(T, async_wrapper)
 
     return decorator if _func is None else decorator(_func)
@@ -371,9 +372,8 @@ def Agent(
             if hasattr(obj, "_tool_metadata"):
                 tools[attr] = obj._tool_metadata
 
-        # Store tools using a more type-safe approach
-        # Manually adding an attribute to the class
-        object.__setattr__(cls, "_tools", tools)
+        # Store tools directly as a class attribute
+        cls._tools = tools  # type: ignore
 
         original_init = cls.__init__
 
@@ -415,10 +415,9 @@ def Agent(
             return str(result)
 
         # Attach the implemented methods to the decorated class
-        # Use object.__setattr__ for better type safety with mypy
-        object.__setattr__(cls, "__init__", init_wrapper)
-        object.__setattr__(cls, "run", run)
-        object.__setattr__(cls, "execute_tool", execute_tool)
+        cls.__init__ = init_wrapper  # type: ignore
+        cls.run = run  # type: ignore
+        cls.execute_tool = execute_tool  # type: ignore
         return cls
 
     return decorator
