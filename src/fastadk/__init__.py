@@ -23,14 +23,30 @@ __author__ = "FastADK Team"
 __email__ = "team@fastadk.dev"
 __license__ = "MIT"
 
-# Core imports - will be implemented in later phases
-from .core.exceptions import FastADKError
+# Core imports
+from .core.agent import Agent, BaseAgent, ProviderABC, tool
+from .core.exceptions import (
+    AgentError,
+    ConfigurationError,
+    FastADKError,
+    ToolError,
+)
 
 # Version information
 __all__ = [
+    # Core classes and decorators
+    "Agent",
+    "BaseAgent",
+    "ProviderABC",
+    "tool",
+    # Exceptions
+    "AgentError",
+    "ConfigurationError",
+    "FastADKError",
+    "ToolError",
+    # Package metadata
     "__version__",
     "__author__",
     "__email__",
     "__license__",
-    "FastADKError",
 ]
