@@ -186,6 +186,35 @@ disallow_untyped_defs = false
 warn_return_any = false
 warn_unused_ignores = false
 
+# Allow for mocking and testing code
+[[tool.mypy.overrides]]
+module = "fastadk.testing.*"
+disallow_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
+
+# Ignore type errors in tests
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+warn_return_any = false
+
+# Ignore proof of concept experimental code
+[[tool.mypy.overrides]]
+module = "proof_of_concept.*"
+ignore_errors = true
+
+# Ignore example code completely
+[[tool.mypy.overrides]]
+module = "examples.*"
+ignore_errors = true
+
+# Disable specific tool-related errors in tests
+[[tool.mypy.overrides]]
+module = "tests.unit.test_agent"
+disable_error_code = ["attr-defined", "arg-type", "assignment"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [

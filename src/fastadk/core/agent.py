@@ -184,7 +184,7 @@ class BaseAgent:
                     # For tests, use a mock model if no API key is available
                     from fastadk.testing.utils import MockModel
 
-                    self.model = MockModel()
+                    self.model = MockModel()  # type: ignore
                     logger.info(
                         "Using mock model for %s (no API key available)",
                         self._model_name,
@@ -330,9 +330,9 @@ def Agent(
 
     def decorator(cls: type[T]) -> type[T]:
         # Store metadata on the class
-        cls._model_name = model
-        cls._description = description or cls.__doc__ or ""
-        cls._provider = provider
+        cls._model_name = model  # type: ignore
+        cls._description = description or cls.__doc__ or ""  # type: ignore
+        cls._provider = provider  # type: ignore
 
         # Add any additional kwargs as class variables
         for key, value in kwargs.items():

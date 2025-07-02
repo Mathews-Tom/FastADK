@@ -37,8 +37,8 @@ class MockModel:
         """Initialize the mock model."""
         self.responses = responses or {}
         self.default_response = default_response
-        self.invocations = []
-        self.last_prompt = None
+        self.invocations: list[dict[str, Any]] = []
+        self.last_prompt: str | None = None
 
     def generate_content(self, prompt: str, **kwargs: Any) -> MockResponse:
         """Simulate generating content from a prompt."""
@@ -167,10 +167,10 @@ class AgentTest:
         if not hasattr(self.agent, "model") or not isinstance(
             self.agent.model, MockModel
         ):
-            self.agent.model = MockModel()
+            self.agent.model = MockModel()  # type: ignore
 
         # Add the response to the model's response dictionary
-        self.agent.model.responses[prompt] = response  # type: ignore
+        self.agent.model.responses[prompt] = response  # type: ignore[attr-defined]
 
     @classmethod
     async def run_load_test(cls, scenario_name: str, **kwargs: Any) -> dict[str, Any]:
