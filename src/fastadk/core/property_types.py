@@ -71,8 +71,8 @@ class ValidatedProperty(Generic[T]):
     def __eq__(self, other: object) -> bool:
         """Compare equality with another object."""
         if isinstance(other, ValidatedProperty):
-            return self.value == other.value
-        return self.value == other
+            return bool(self.value == other.value)
+        return bool(self.value == other)
 
 
 class URLProperty(ValidatedProperty[str]):

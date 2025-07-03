@@ -4,6 +4,7 @@ Type stubs for the agent module.
 This file provides precise type annotations for the agent module, enabling
 IDE autocompletion and static type checking with mypy.
 """
+
 # pylint: disable=unused-argument, unnecessary-ellipsis
 
 import asyncio
@@ -49,6 +50,7 @@ class AgentMetadata(BaseModel):
 
 class ProviderABC(ABC):
     """Abstract Base Class for LLM providers."""
+
     @abstractmethod
     async def initialize(self, metadata: AgentMetadata) -> Any: ...
     @abstractmethod
