@@ -2,6 +2,9 @@
 Tests for FastADK exception classes.
 """
 
+# mypy: disable-error-code="attr-defined"
+# pylint: disable=no-member,protected-access
+
 import pytest
 
 from fastadk.core.exceptions import (
@@ -121,8 +124,8 @@ class TestExceptionChaining:
         try:
             try:
                 raise ValueError("Original error")
-            except ValueError:
-                raise FastADKError("Context error")
+            except ValueError as exc:
+                raise FastADKError("Context error") from exc
         except FastADKError as error:
             assert error.message == "Context error"
             assert isinstance(error.__context__, ValueError)
