@@ -43,10 +43,8 @@ from .core.exceptions import (
     AgentError,
     ConfigurationError,
     FastADKError,
-    MemoryError,
+    MemoryBackendError,
     PluginError,
-    ProviderError,
-    SecurityError,
     ToolError,
     ValidationError,
 )
@@ -73,10 +71,8 @@ __all__ = [
     "AgentError",
     "ConfigurationError",
     "FastADKError",
-    "MemoryError",
+    "MemoryBackendError",
     "PluginError",
-    "ProviderError",
-    "SecurityError",
     "ToolError",
     "ValidationError",
     # Package metadata

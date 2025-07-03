@@ -38,6 +38,8 @@ class TestAgentDecorator:
 
     def test_basic_decorator(self):
         """Test that the @Agent decorator properly sets class attributes."""
+        # These are intentionally testing protected attributes set by the decorator
+        # pylint: disable=protected-access
         assert TestableAgent._model_name == "gemini-1.5-pro"
         assert TestableAgent._description == "Test Agent"
         assert TestableAgent._provider == "gemini"
@@ -78,8 +80,8 @@ class TestBaseAgent:
     def test_initialization(self):
         """Test agent initialization."""
         agent = TestableAgent()
-        assert agent.tools_used == []
-        assert agent.memory_data == {}
+        assert not agent.tools_used, "tools_used should be empty initially"
+        assert not agent.memory_data, "memory_data should be empty initially"
 
     @pytest.mark.asyncio
     async def test_run_method(self):

@@ -4,6 +4,7 @@ Type stubs for the agent module.
 This file provides precise type annotations for the agent module, enabling
 IDE autocompletion and static type checking with mypy.
 """
+# pylint: disable=unused-argument, unnecessary-ellipsis
 
 import asyncio
 from abc import ABC, abstractmethod
@@ -80,18 +81,82 @@ class BaseAgent:
     def _initialize_gemini_model(self) -> None: ...
     def _initialize_openai_model(self) -> None: ...
     def _initialize_anthropic_model(self) -> None: ...
-    async def run(self, user_input: str) -> str: ...
-    async def _generate_response(self, user_input: str) -> str: ...
-    async def _generate_gemini_response(self, user_input: str) -> str: ...
-    async def _generate_openai_response(self, user_input: str) -> str: ...
-    async def _generate_anthropic_response(self, user_input: str) -> str: ...
-    async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any: ...
+
+    async def run(self, user_input: str) -> str:
+        """Run the agent with the given user input.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The agent's response as a string
+        """
+        ...
+
+    async def _generate_response(self, user_input: str) -> str:
+        """Generate a response from the model.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The generated response
+        """
+        ...
+
+    async def _generate_gemini_response(self, user_input: str) -> str:
+        """Generate a response using the Gemini model.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The generated response from Gemini
+        """
+        ...
+
+    async def _generate_openai_response(self, user_input: str) -> str:
+        """Generate a response using the OpenAI model.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The generated response from OpenAI
+        """
+        ...
+
+    async def _generate_anthropic_response(self, user_input: str) -> str:
+        """Generate a response using the Anthropic model.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The generated response from Anthropic
+        """
+        ...
+
+    async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
+        """Execute a tool by name with the given arguments.
+
+        Args:
+            tool_name: The name of the tool to execute
+            **kwargs: Arguments to pass to the tool
+
+        Returns:
+            The result of the tool execution
+        """
+        ...
+
     def on_start(self) -> None:
         """Hook called when the agent starts processing a request."""
         ...
+
     def on_finish(self, result: str) -> None:
         """Hook called when the agent finishes processing a request."""
         ...
+
     def on_error(self, error: Exception) -> None:
         """Hook called when the agent encounters an error."""
         ...

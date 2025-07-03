@@ -46,6 +46,7 @@ dependencies = [
     "types-pyyaml>=6.0.12.20250516",
     "openai>=1.93.0",
     "anthropic>=0.56.0",
+    "pylint>=3.3.7",
 ]
 dynamic = ["version"]
 
