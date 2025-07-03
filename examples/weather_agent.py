@@ -135,13 +135,13 @@ class WeatherAgent(BaseAgent):
 
     # --- Lifecycle Hooks (Optional) ---
 
-    async def on_start(self, input_text: str, **kwargs) -> None:
+    def on_start(self) -> None:
         """This hook is called before the agent processes the input."""
-        logger.info(f"WeatherAgent LIVE processing: '{input_text}'")
+        logger.info("WeatherAgent LIVE processing starting")
 
-    async def on_finish(self, response: str, **kwargs) -> None:
+    def on_finish(self, result: str) -> None:
         """This hook is called after the agent generates a final response."""
-        logger.info(f"WeatherAgent LIVE response length: {len(response)}")
+        logger.info("WeatherAgent LIVE response length: %d", len(result))
 
 
 if __name__ == "__main__":
