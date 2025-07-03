@@ -8,10 +8,8 @@ from fastadk.core.exceptions import (
     AgentError,
     ConfigurationError,
     FastADKError,
-    MemoryError,
+    MemoryBackendError,
     PluginError,
-    ProviderError,
-    SecurityError,
     ToolError,
     ValidationError,
 )
@@ -61,11 +59,9 @@ class TestSpecificExceptions:
             ConfigurationError,
             AgentError,
             ToolError,
-            MemoryError,
+            MemoryBackendError,
             PluginError,
             ValidationError,
-            SecurityError,
-            ProviderError,
         ],
     )
     def test_exception_inheritance(self, exception_class):
@@ -89,9 +85,9 @@ class TestSpecificExceptions:
         error = ToolError("Tool execution failed")
         assert "Tool execution failed" in str(error)
 
-    def test_memory_error(self):
-        """Test MemoryError specific functionality."""
-        error = MemoryError("Memory backend unavailable")
+    def test_memory_backend_error(self):
+        """Test MemoryBackendError specific functionality."""
+        error = MemoryBackendError("Memory backend unavailable")
         assert "Memory backend unavailable" in str(error)
 
     def test_plugin_error(self):
@@ -103,16 +99,6 @@ class TestSpecificExceptions:
         """Test ValidationError specific functionality."""
         error = ValidationError("Input validation failed")
         assert "Input validation failed" in str(error)
-
-    def test_security_error(self):
-        """Test SecurityError specific functionality."""
-        error = SecurityError("Security check failed")
-        assert "Security check failed" in str(error)
-
-    def test_provider_error(self):
-        """Test ProviderError specific functionality."""
-        error = ProviderError("Provider connection failed")
-        assert "Provider connection failed" in str(error)
 
 
 class TestExceptionChaining:
