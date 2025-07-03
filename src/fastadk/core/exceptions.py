@@ -5,6 +5,8 @@ This module provides a hierarchy of exception classes that are used
 throughout FastADK to report various error conditions.
 """
 
+from typing import Any
+
 
 class FastADKError(Exception):
     """
@@ -14,7 +16,7 @@ class FastADKError(Exception):
     maintain a consistent exception hierarchy.
     """
 
-    def __init__(self, message: str, error_code: str = None, details: dict = None):
+    def __init__(self, message: str, error_code: str | None = None, details: dict[str, Any] | None = None):
         """
         Initialize a FastADKError.
 
