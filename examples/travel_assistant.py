@@ -27,17 +27,17 @@ import logging
 import random
 import time
 from datetime import datetime
-from typing import Any, Dict, Sequence
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 
-# Type alias for mypy
-JsonDict = dict  # type: ignore
-
 from fastadk import Agent, BaseAgent, create_app, registry, tool
 from fastadk.core.exceptions import ToolError
 from fastadk.memory import InMemoryBackend
+
+# Type alias for mypy
+JsonDict = dict  # type: ignore
 
 # --- Setup ---
 # Load environment variables from .env file
