@@ -1,8 +1,8 @@
 """
-FastADK exception classes.
+Custom exception classes for FastADK.
 
-This module defines the exception hierarchy for FastADK, providing structured
-error handling across the framework components.
+This module provides a hierarchy of exception classes that are used
+throughout FastADK to report various error conditions.
 """
 
 from typing import Any
@@ -12,9 +12,8 @@ class FastADKError(Exception):
     """
     Base exception class for all FastADK errors.
 
-    This is the root exception that all other FastADK exceptions inherit from.
-    It provides structured error information and supports error codes for
-    better error handling in applications.
+    All exception classes in FastADK should inherit from this class to
+    maintain a consistent exception hierarchy.
     """
 
     def __init__(
@@ -22,64 +21,77 @@ class FastADKError(Exception):
         message: str,
         error_code: str | None = None,
         details: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(message)
+    ):
+        """
+        Initialize a FastADKError.
+
+        Args:
+            message: The error message
+            error_code: Optional error code for categorization
+            details: Optional dictionary with additional error details
+        """
         self.message = message
         self.error_code = error_code
         self.details = details or {}
 
-    def __str__(self) -> str:
-        if self.error_code:
-            return f"[{self.error_code}] {self.message}"
-        return self.message
+        # Format the message with error code if provided
+        formatted_message = f"[{error_code}] {message}" if error_code else message
+        super().__init__(formatted_message)
 
     def __repr__(self) -> str:
+        """Return a string representation of the error."""
         return f"{self.__class__.__name__}(message='{self.message}', error_code='{self.error_code}')"
 
 
 class ConfigurationError(FastADKError):
-    """Raised when there are configuration-related issues."""
+    """
+    Raised when there are issues with agent configuration.
 
-    pass
+    This could be due to missing required settings, invalid configuration values,
+    or other configuration-related problems.
+    """
+
+
+class ServiceUnavailableError(FastADKError):
+    """
+    Raised when an external service is unavailable.
+
+    This could be due to network issues, service outages, or other problems
+    preventing communication with external services like APIs or LLM providers.
+    """
 
 
 class AgentError(FastADKError):
-    """Raised when there are agent-related issues."""
+    """Raised when there are agent execution issues."""
 
-    pass
+
+class ValidationError(FastADKError):
+    """Raised when there are validation issues with data."""
 
 
 class ToolError(FastADKError):
     """Raised when there are tool execution issues."""
 
-    pass
 
-
-class MemoryError(FastADKError):
+class MemoryBackendError(FastADKError):
     """Raised when there are memory backend issues."""
-
-    pass
 
 
 class PluginError(FastADKError):
     """Raised when there are plugin-related issues."""
 
-    pass
+
+class AuthenticationError(FastADKError):
+    """Raised when there are authentication issues."""
 
 
-class ValidationError(FastADKError):
-    """Raised when input validation fails."""
-
-    pass
+class RateLimitError(FastADKError):
+    """Raised when rate limits are exceeded."""
 
 
-class SecurityError(FastADKError):
-    """Raised when security checks fail."""
-
-    pass
+class OperationTimeoutError(FastADKError):
+    """Raised when an operation times out."""
 
 
-class ProviderError(FastADKError):
-    """Raised when there are provider backend issues."""
-
-    pass
+class NotFoundError(FastADKError):
+    """Raised when a requested resource is not found."""

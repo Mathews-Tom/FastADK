@@ -8,10 +8,8 @@ from .exceptions import (
     AgentError,
     ConfigurationError,
     FastADKError,
-    MemoryError,
+    MemoryBackendError,
     PluginError,
-    ProviderError,
-    SecurityError,
     ToolError,
     ValidationError,
 )
@@ -26,10 +24,8 @@ __all__ = [
     "FastADKError",
     "AgentError",
     "ConfigurationError",
-    "MemoryError",
+    "MemoryBackendError",
     "PluginError",
-    "ProviderError",
-    "SecurityError",
     "ToolError",
     "ValidationError",
 ]

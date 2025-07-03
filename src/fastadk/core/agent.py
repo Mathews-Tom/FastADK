@@ -5,6 +5,8 @@ This module provides the foundation for agent creation in FastADK,
 including the BaseAgent class and @Agent and @tool decorators.
 """
 
+# pylint: disable=attribute-defined-outside-init, redefined-outer-name
+
 import asyncio
 import functools
 import inspect
@@ -150,6 +152,7 @@ class BaseAgent:
 
         # Add any instance methods decorated as tools
         for name, method in inspect.getmembers(self, inspect.ismethod):
+            # pylint: disable=protected-access
             if hasattr(method, "_is_tool") and method._is_tool:
                 metadata = getattr(method, "_tool_metadata", {})
                 self.tools[name] = ToolMetadata(
@@ -203,6 +206,7 @@ class BaseAgent:
             # For tests, use a mock model if no API key is available
             from fastadk.testing.utils import MockModel
 
+            # pylint: disable=attribute-defined-outside-init
             self.model = MockModel()  # type: ignore
             logger.info(
                 "Using mock model for %s (no API key available)",
@@ -221,10 +225,10 @@ class BaseAgent:
             # Initialize the client
             self.model = openai.OpenAI(api_key=api_key)  # type: ignore
             logger.info("Initialized OpenAI model %s", self._model_name)
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
                 "OpenAI package not installed. Install with: uv add openai"
-            )
+            ) from exc
 
     def _initialize_anthropic_model(self) -> None:
         """Initialize Anthropic model."""
@@ -240,10 +244,10 @@ class BaseAgent:
             # Initialize the client
             self.model = anthropic.Anthropic(api_key=api_key)  # type: ignore
             logger.info("Initialized Anthropic model %s", self._model_name)
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
                 "Anthropic package not installed. Install with: uv add anthropic"
-            )
+            ) from exc
 
     async def run(self, user_input: str) -> str:
         """
@@ -281,11 +285,11 @@ class BaseAgent:
             # Handle different providers
             if self._provider == "gemini":
                 return await self._generate_gemini_response(user_input)
-            elif self._provider == "openai":
+            if self._provider == "openai":
                 return await self._generate_openai_response(user_input)
-            elif self._provider == "anthropic":
+            if self._provider == "anthropic":
                 return await self._generate_anthropic_response(user_input)
-            elif self._provider == "simulated":
+            if self._provider == "simulated":
                 # For simulated/mock model
                 if hasattr(self.model, "generate_content"):
                     response = await asyncio.to_thread(
@@ -293,8 +297,9 @@ class BaseAgent:
                     )
                     return str(response)
                 return f"Simulated response to: {user_input}"
-            else:
-                raise AgentError(f"Unsupported provider: {self._provider}")
+
+            # If no provider matched
+            raise AgentError(f"Unsupported provider: {self._provider}")
         except Exception as e:
             logger.error("Error generating response: %s", e, exc_info=True)
             raise AgentError(f"Failed to generate response: {e}") from e
@@ -318,9 +323,9 @@ class BaseAgent:
                 )
             )
             return response.choices[0].message.content or ""  # type: ignore
-        else:
-            # Fallback for mock model
-            return f"OpenAI mock response to: {user_input}"
+
+        # Fallback for mock model
+        return f"OpenAI mock response to: {user_input}"
 
     async def _generate_anthropic_response(self, user_input: str) -> str:
         """Generate a response using the Anthropic model."""
@@ -334,9 +339,9 @@ class BaseAgent:
                 )
             )
             return response.content[0].text  # type: ignore
-        else:
-            # Fallback for mock model
-            return f"Anthropic mock response to: {user_input}"
+
+        # Fallback for mock model
+        return f"Anthropic mock response to: {user_input}"
 
     async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
         """
@@ -429,6 +434,7 @@ def Agent(
 
     def decorator(cls: type[T]) -> type[T]:
         # Store metadata on the class
+        # pylint: disable=protected-access
         cls._model_name = model  # type: ignore
         cls._description = description or cls.__doc__ or ""  # type: ignore
         cls._provider = provider  # type: ignore
@@ -442,6 +448,7 @@ def Agent(
     return decorator
 
 
+# pylint: disable=redefined-outer-name, redefined-builtin
 def tool(
     cache_ttl: int = 0,
     timeout: int = 30,
@@ -507,6 +514,7 @@ def tool(
         tool_metadata.update(kwargs)
 
         # Store metadata on the function
+        # pylint: disable=protected-access
         func._is_tool = True  # type: ignore
         func._tool_metadata = tool_metadata  # type: ignore
 
@@ -540,7 +548,7 @@ def tool(
                     self_obj.tools[method_name] = ToolMetadata(
                         name=method_name,
                         description=description,
-                        function=func.__get__(self_obj, type(self_obj)),
+                        function=getattr(self_obj, func.__name__),
                         cache_ttl=cache_ttl,
                         timeout=timeout,
                         retries=retries,

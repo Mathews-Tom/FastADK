@@ -46,10 +46,10 @@ async def _get_weather_data(city: str) -> dict | None:
             response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes
             return response.json()
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error for {city}: {e.response.status_code}")
+            logger.error("HTTP error for %s: %s", city, e.response.status_code)
             return None
-        except Exception as e:
-            logger.error(f"Error fetching or parsing weather for {city}: {e}")
+        except (httpx.HTTPError, httpx.TimeoutException, ValueError, KeyError) as e:
+            logger.error("Error fetching or parsing weather for %s: %s", city, e)
             return None
 
 
@@ -129,25 +129,26 @@ class WeatherAgent(BaseAgent):
                     }
                 )
             except (KeyError, IndexError) as e:
-                logger.warning(f"Could not parse part of the forecast data: {e}")
+                logger.warning("Could not parse part of the forecast data: %s", e)
 
         return forecasts
 
     # --- Lifecycle Hooks (Optional) ---
 
-    async def on_start(self, input_text: str, **kwargs) -> None:
+    def on_start(self) -> None:
         """This hook is called before the agent processes the input."""
-        logger.info(f"WeatherAgent LIVE processing: '{input_text}'")
+        logger.info("WeatherAgent LIVE processing starting")
 
-    async def on_finish(self, response: str, **kwargs) -> None:
+    def on_finish(self, result: str) -> None:
         """This hook is called after the agent generates a final response."""
-        logger.info(f"WeatherAgent LIVE response length: {len(response)}")
+        logger.info("WeatherAgent LIVE response length: %d", len(result))
 
 
 if __name__ == "__main__":
     # This block allows for direct execution of the script for quick testing.
     # It demonstrates how to instantiate and run the agent programmatically.
     async def test_agent():
+        """Test the WeatherAgent with a sample query about London weather."""
         agent = WeatherAgent()
 
         print("\n--- Testing Agent with a sample query ---")

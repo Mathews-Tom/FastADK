@@ -270,7 +270,7 @@ class FastADKSettings(BaseSettings):
             print("tomli package not installed. Required for TOML config files.")
         except (OSError, PermissionError) as e:
             print(f"Error accessing configuration file {config_path}: {e}")
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             print(f"Unexpected error loading configuration from {config_path}: {e}")
 
     def _update_from_dict(self, data: dict[str, Any]) -> None:
@@ -331,6 +331,11 @@ def get_settings() -> FastADKSettings:
 
 def reload_settings() -> FastADKSettings:
     """Reload settings from environment and config files."""
-    global settings
-    settings = FastADKSettings()
-    return settings
+    # Re-initialize settings
+    new_settings = FastADKSettings()
+
+    # Update the module-level settings
+    # This approach doesn't require the global keyword
+    globals()["settings"] = new_settings
+
+    return new_settings
