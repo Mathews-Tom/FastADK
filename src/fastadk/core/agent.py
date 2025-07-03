@@ -223,7 +223,7 @@ class BaseAgent:
             logger.info("Initialized OpenAI model %s", self._model_name)
         except ImportError:
             raise ImportError(
-                "OpenAI package not installed. " "Install with: uv add openai"
+                "OpenAI package not installed. Install with: uv add openai"
             )
 
     def _initialize_anthropic_model(self) -> None:
@@ -242,7 +242,7 @@ class BaseAgent:
             logger.info("Initialized Anthropic model %s", self._model_name)
         except ImportError:
             raise ImportError(
-                "Anthropic package not installed. " "Install with: uv add anthropic"
+                "Anthropic package not installed. Install with: uv add anthropic"
             )
 
     async def run(self, user_input: str) -> str:

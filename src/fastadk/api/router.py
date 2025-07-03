@@ -184,7 +184,7 @@ def create_api_router() -> APIRouter:
 
     @router.get("/agents/{agent_name}", response_model=AgentInfo)
     async def get_agent_info(
-        agent_name: str = Path(..., description="Name of the agent")
+        agent_name: str = Path(..., description="Name of the agent"),
     ) -> AgentInfo:
         """
         Get information about a specific agent.
@@ -383,7 +383,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event() -> None:
         logger.info("FastADK API starting up")
-    
+
     @app.on_event("shutdown")
     async def shutdown_event() -> None:
         logger.info("FastADK API shutting down")
