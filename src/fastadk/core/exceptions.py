@@ -14,6 +14,27 @@ class FastADKError(Exception):
     maintain a consistent exception hierarchy.
     """
 
+    def __init__(self, message: str, error_code: str = None, details: dict = None):
+        """
+        Initialize a FastADKError.
+
+        Args:
+            message: The error message
+            error_code: Optional error code for categorization
+            details: Optional dictionary with additional error details
+        """
+        self.message = message
+        self.error_code = error_code
+        self.details = details or {}
+
+        # Format the message with error code if provided
+        formatted_message = f"[{error_code}] {message}" if error_code else message
+        super().__init__(formatted_message)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the error."""
+        return f"{self.__class__.__name__}(message='{self.message}', error_code='{self.error_code}')"
+
 
 class ConfigurationError(FastADKError):
     """
