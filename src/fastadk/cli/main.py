@@ -9,16 +9,21 @@ import asyncio
 import importlib.util
 import inspect
 import logging
+import os
 import sys
 from pathlib import Path
 
 import typer
+import uvicorn
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.prompt import Prompt
+from rich.table import Table
 
+from fastadk import __version__
 from fastadk.core.agent import BaseAgent
+from fastadk.core.config import get_settings
 
 # --- Setup ---
 # Configure logging for rich, colorful output
@@ -195,13 +200,161 @@ def run(
 
 
 @app.command()
+def serve(
+    module_path: Path = typer.Argument(
+        ...,
+        help="Path to the Python module file containing your agent class(es).",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+    host: str = typer.Option(
+        "127.0.0.1", "--host", "-h", help="The host to bind the server to."
+    ),
+    port: int = typer.Option(
+        8000, "--port", "-p", help="The port to bind the server to."
+    ),
+    reload: bool = typer.Option(
+        False, "--reload", help="Enable auto-reload on file changes."
+    ),
+) -> None:
+    """
+    Start an HTTP server to serve your agents via a REST API.
+    """
+    console.print(
+        Panel.fit(
+            "Starting FastADK API server...\n"
+            f"Loading agents from: [cyan]{module_path}[/cyan]",
+            title="🚀 FastADK API",
+            border_style="green",
+        )
+    )
+
+    # Import module and find agent classes
+    module = _import_module_from_path(module_path)
+    agent_classes = _find_agent_classes(module)
+
+    if not agent_classes:
+        console.print(
+            f"[bold red]Error:[/bold red] No FastADK agent classes found in {module_path.name}."
+        )
+        raise typer.Exit(code=1)
+
+    # Import API components here to avoid circular imports
+    from fastadk.api.router import create_app, registry
+
+    # Register all agents found in the module
+    for agent_class in agent_classes:
+        registry.register(agent_class)
+        console.print(
+            f"  - Registered agent: [bold cyan]{agent_class.__name__}[/bold cyan]"
+        )
+
+    # Create a table with registered agents and their endpoints
+    table = Table(title="Available API Endpoints")
+    table.add_column("Agent", style="cyan")
+    table.add_column("Endpoint", style="green")
+    table.add_column("Description", style="white")
+
+    for agent_class in agent_classes:
+        # Use getattr for _description to avoid mypy error with protected member access
+        description = getattr(agent_class, "_description", "")
+        table.add_row(
+            agent_class.__name__,
+            f"POST /agents/{agent_class.__name__}",
+            description,
+        )
+
+    console.print(table)
+    console.print(
+        f"\nAPI Documentation: [bold blue]http://{host}:{port}/docs[/bold blue]"
+    )
+
+    # Set environment variable to identify the module path for use in reload mode
+    os.environ["FASTADK_MODULE_PATH"] = str(module_path)
+
+    # Start Uvicorn server
+    try:
+        # Create the app with our registry and pass it to uvicorn
+        api_app = create_app()
+        uvicorn.run(
+            api_app,
+            host=host,
+            port=port,
+            reload=reload,
+            log_level="info",
+        )
+    except Exception as e:
+        console.print(f"[bold red]Failed to start server:[/bold red] {e}")
+        logger.debug("Traceback: %s", e, exc_info=True)
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def version() -> None:
     """
     Display the installed version of FastADK.
     """
-    from fastadk import __version__
-
     console.print(f"🚀 FastADK version: [bold cyan]{__version__}[/bold cyan]")
+
+
+@app.command()
+def config() -> None:
+    """
+    Display the current configuration settings.
+    """
+    settings = get_settings()
+
+    console.print(
+        Panel(
+            "[bold]FastADK Configuration[/bold]\n",
+            title="⚙️ Settings",
+            border_style="blue",
+        )
+    )
+
+    # Environment
+    console.print(f"[bold]Environment:[/bold] [cyan]{settings.environment}[/cyan]")
+
+    # Model configuration
+    console.print("\n[bold]Model Configuration:[/bold]")
+    # Access attributes directly with fallbacks
+    provider = getattr(settings.model, "provider", "unknown")
+    model_name = getattr(settings.model, "model_name", "unknown")
+    api_key_var = getattr(settings.model, "api_key_env_var", "unknown")
+
+    console.print(f"  Provider: [cyan]{provider}[/cyan]")
+    console.print(f"  Model: [cyan]{model_name}[/cyan]")
+    console.print(f"  API Key Env Var: [cyan]{api_key_var}[/cyan]")
+
+    # Memory configuration
+    console.print("\n[bold]Memory Configuration:[/bold]")
+    console.print(f"  Backend: [cyan]{settings.memory.backend_type}[/cyan]")
+    console.print(f"  TTL: [cyan]{settings.memory.ttl_seconds}s[/cyan]")
+
+    # Telemetry
+    console.print("\n[bold]Telemetry Configuration:[/bold]")
+    console.print(f"  Enabled: [cyan]{settings.telemetry.enabled}[/cyan]")
+    console.print(f"  Log Level: [cyan]{settings.telemetry.log_level}[/cyan]")
+
+    # Security
+    console.print("\n[bold]Security Configuration:[/bold]")
+    console.print(
+        f"  Content Filtering: [cyan]{settings.security.content_filtering}[/cyan]"
+    )
+    console.print(f"  PII Detection: [cyan]{settings.security.pii_detection}[/cyan]")
+    console.print(f"  Audit Logging: [cyan]{settings.security.audit_logging}[/cyan]")
+
+    # Config paths
+    if settings.config_path:
+        console.print(
+            f"\n[bold]Config loaded from:[/bold] [green]{settings.config_path}[/green]"
+        )
+    else:
+        console.print(
+            "\n[bold yellow]No config file found. Using defaults and environment variables.[/bold yellow]"
+        )
 
 
 if __name__ == "__main__":

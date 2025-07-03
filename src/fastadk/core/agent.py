@@ -168,34 +168,82 @@ class BaseAgent:
         """Initialize the AI model based on configuration."""
         try:
             if self._provider == "gemini":
-                # Initialize Gemini model
-                # Using getattr to avoid FieldInfo errors in IDE
-                api_key_var = getattr(
-                    self.settings.model, "api_key_env_var", "GEMINI_API_KEY"
-                )
-                api_key = os.environ.get(api_key_var)
+                self._initialize_gemini_model()
+            elif self._provider == "openai":
+                self._initialize_openai_model()
+            elif self._provider == "anthropic":
+                self._initialize_anthropic_model()
+            elif self._provider == "simulated":
+                # Use mock model for simulation and testing
+                from fastadk.testing.utils import MockModel
 
-                if api_key:
-                    genai.configure(api_key=api_key)
-                    # Set default Gemini configuration
-                    self.model = genai.GenerativeModel(self._model_name)
-                    logger.info("Initialized Gemini model %s", self._model_name)
-                else:
-                    # For tests, use a mock model if no API key is available
-                    from fastadk.testing.utils import MockModel
-
-                    self.model = MockModel()  # type: ignore
-                    logger.info(
-                        "Using mock model for %s (no API key available)",
-                        self._model_name,
-                    )
+                self.model = MockModel()  # type: ignore
+                logger.info("Initialized simulated mock model")
             else:
-                # For now, only Gemini is supported
+                # If provider is unknown, try to use a mock model
                 raise ConfigurationError(
-                    f"Unsupported provider: {self._provider}. Only 'gemini' is currently supported."
+                    f"Unsupported provider: {self._provider}. "
+                    "Supported providers: 'gemini', 'openai', 'anthropic', 'simulated'"
                 )
         except Exception as e:
             raise ConfigurationError(f"Failed to initialize model: {e}") from e
+
+    def _initialize_gemini_model(self) -> None:
+        """Initialize Gemini model."""
+        # Using getattr to avoid FieldInfo errors in IDE
+        api_key_var = getattr(self.settings.model, "api_key_env_var", "GEMINI_API_KEY")
+        api_key = os.environ.get(api_key_var) or os.environ.get("GEMINI_API_KEY")
+
+        if api_key:
+            genai.configure(api_key=api_key)
+            # Set default Gemini configuration
+            self.model = genai.GenerativeModel(self._model_name)  # type: ignore
+            logger.info("Initialized Gemini model %s", self._model_name)
+        else:
+            # For tests, use a mock model if no API key is available
+            from fastadk.testing.utils import MockModel
+
+            self.model = MockModel()  # type: ignore
+            logger.info(
+                "Using mock model for %s (no API key available)",
+                self._model_name,
+            )
+
+    def _initialize_openai_model(self) -> None:
+        """Initialize OpenAI model."""
+        try:
+            import openai
+
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                raise ConfigurationError("OPENAI_API_KEY environment variable not set")
+
+            # Initialize the client
+            self.model = openai.OpenAI(api_key=api_key)  # type: ignore
+            logger.info("Initialized OpenAI model %s", self._model_name)
+        except ImportError:
+            raise ImportError(
+                "OpenAI package not installed. Install with: uv add openai"
+            )
+
+    def _initialize_anthropic_model(self) -> None:
+        """Initialize Anthropic model."""
+        try:
+            import anthropic
+
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ConfigurationError(
+                    "ANTHROPIC_API_KEY environment variable not set"
+                )
+
+            # Initialize the client
+            self.model = anthropic.Anthropic(api_key=api_key)  # type: ignore
+            logger.info("Initialized Anthropic model %s", self._model_name)
+        except ImportError:
+            raise ImportError(
+                "Anthropic package not installed. Install with: uv add anthropic"
+            )
 
     async def run(self, user_input: str) -> str:
         """
@@ -230,14 +278,65 @@ class BaseAgent:
     async def _generate_response(self, user_input: str) -> str:
         """Generate a response from the model."""
         try:
-            # Simple implementation - just generate text
-            response = await asyncio.to_thread(
-                lambda: self.model.generate_content(user_input).text
-            )
-            return str(response)
+            # Handle different providers
+            if self._provider == "gemini":
+                return await self._generate_gemini_response(user_input)
+            elif self._provider == "openai":
+                return await self._generate_openai_response(user_input)
+            elif self._provider == "anthropic":
+                return await self._generate_anthropic_response(user_input)
+            elif self._provider == "simulated":
+                # For simulated/mock model
+                if hasattr(self.model, "generate_content"):
+                    response = await asyncio.to_thread(
+                        lambda: self.model.generate_content(user_input).text
+                    )
+                    return str(response)
+                return f"Simulated response to: {user_input}"
+            else:
+                raise AgentError(f"Unsupported provider: {self._provider}")
         except Exception as e:
             logger.error("Error generating response: %s", e, exc_info=True)
             raise AgentError(f"Failed to generate response: {e}") from e
+
+    async def _generate_gemini_response(self, user_input: str) -> str:
+        """Generate a response using the Gemini model."""
+        response = await asyncio.to_thread(
+            lambda: self.model.generate_content(user_input).text
+        )
+        return str(response)
+
+    async def _generate_openai_response(self, user_input: str) -> str:
+        """Generate a response using the OpenAI model."""
+        # Handle both real OpenAI model and mock model
+        if hasattr(self.model, "chat"):
+            response = await asyncio.to_thread(
+                lambda: self.model.chat.completions.create(  # type: ignore
+                    model=self._model_name,
+                    messages=[{"role": "user", "content": user_input}],
+                    max_tokens=1000,
+                )
+            )
+            return response.choices[0].message.content or ""  # type: ignore
+        else:
+            # Fallback for mock model
+            return f"OpenAI mock response to: {user_input}"
+
+    async def _generate_anthropic_response(self, user_input: str) -> str:
+        """Generate a response using the Anthropic model."""
+        # Handle both real Anthropic model and mock model
+        if hasattr(self.model, "messages"):
+            response = await asyncio.to_thread(
+                lambda: self.model.messages.create(  # type: ignore
+                    model=self._model_name,
+                    messages=[{"role": "user", "content": user_input}],
+                    max_tokens=1000,
+                )
+            )
+            return response.content[0].text  # type: ignore
+        else:
+            # Fallback for mock model
+            return f"Anthropic mock response to: {user_input}"
 
     async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
         """
