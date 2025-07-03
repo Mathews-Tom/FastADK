@@ -92,13 +92,13 @@ class URLProperty(ValidatedProperty[str]):
         """
         # URL validation regex pattern
         url_pattern = re.compile(
-            r'^(https?|ftp)://'  # protocol
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|'
-            r'[A-Z0-9-]{2,}\.?)|'  # domain
-            r'localhost|'  # localhost
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or IP
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$',
+            r"^(https?|ftp)://"  # protocol
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|"
+            r"[A-Z0-9-]{2,}\.?)|"  # domain
+            r"localhost|"  # localhost
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # or IP
+            r"(?::\d+)?"  # optional port
+            r"(?:/?|[/?]\S+)$",
             re.IGNORECASE,  # path
         )
         validators = [lambda x: bool(url_pattern.match(x))]
@@ -122,8 +122,8 @@ class EmailProperty(ValidatedProperty[str]):
         """
         # Email validation regex pattern - more strict to catch edge cases
         email_pattern = re.compile(
-            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}'
-            r'[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
+            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
+            r"[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
         )
         validators = [
             lambda x: bool(email_pattern.match(x)) and ".." not in x and " " not in x
@@ -142,7 +142,11 @@ class QuantityProperty(ValidatedProperty[float]):
     """
 
     def __init__(
-        self, value: float, unit: str, min_value: float | None = None, max_value: float | None = None
+        self,
+        value: float,
+        unit: str,
+        min_value: float | None = None,
+        max_value: float | None = None,
     ) -> None:
         """Initialize a quantity property with unit and optional range validation.
 
@@ -174,7 +178,6 @@ class QuantityProperty(ValidatedProperty[float]):
             error_message = f"Value must be at most {max_value} {unit}"
 
         super().__init__(value, validators, error_message)
-
 
     def __str__(self) -> str:
         """Return the string representation with unit."""
@@ -235,7 +238,9 @@ class NonEmptyStringProperty(ValidatedProperty[str]):
 class LimitedStringProperty(ValidatedProperty[str]):
     """A string property with length limits."""
 
-    def __init__(self, value: str, min_length: int = 0, max_length: int | None = None) -> None:
+    def __init__(
+        self, value: str, min_length: int = 0, max_length: int | None = None
+    ) -> None:
         """Initialize a length-limited string property.
 
         Args:
