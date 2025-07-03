@@ -16,7 +16,12 @@ class FastADKError(Exception):
     maintain a consistent exception hierarchy.
     """
 
-    def __init__(self, message: str, error_code: str | None = None, details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
         """
         Initialize a FastADKError.
 
