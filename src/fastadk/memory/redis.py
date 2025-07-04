@@ -14,7 +14,7 @@ try:
     import redis.asyncio as redis
 except ImportError:
     # Create placeholder for type checking
-    redis = None  # type: ignore
+    redis = None
 
 from loguru import logger
 
