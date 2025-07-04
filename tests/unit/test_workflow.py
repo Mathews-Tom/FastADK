@@ -241,7 +241,7 @@ class TestWorkflow:
         # Define a simple multiply function
         def multiply_by_two(x):
             return x * 2
-        
+
         # Create a step
         multiply = FunctionStep(multiply_by_two)
 
