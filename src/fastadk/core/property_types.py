@@ -9,6 +9,8 @@ import re
 from collections.abc import Callable
 from typing import Generic, TypeVar
 
+from fastadk.core.exceptions import ValidationError
+
 T = TypeVar("T")
 
 
@@ -56,7 +58,14 @@ class ValidatedProperty(Generic[T]):
             # Call the validator and explicitly convert to bool
             # to handle any validator type
             if not bool(validator(self.value)):
-                raise ValueError(f"{self._error_message}: {self.value}")
+                raise ValidationError(
+                    message=f"{self._error_message}: {self.value}",
+                    error_code="PROPERTY_VALIDATION_FAILED",
+                    details={
+                        "property_type": self.__class__.__name__,
+                        "value": str(self.value),
+                    },
+                )
         # All validators passed
         return True
 

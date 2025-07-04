@@ -47,6 +47,7 @@ dependencies = [
     "openai>=1.93.0",
     "anthropic>=0.56.0",
     "pylint>=3.3.7",
+    "types-requests>=2.32.4.20250611",
 ]
 dynamic = ["version"]
 

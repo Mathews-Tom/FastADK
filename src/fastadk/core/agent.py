@@ -22,7 +22,13 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from .config import get_settings
-from .exceptions import AgentError, ConfigurationError, ToolError
+from .exceptions import (
+    AgentError,
+    ConfigurationError,
+    ExceptionTracker,
+    OperationTimeoutError,
+    ToolError,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -385,9 +391,17 @@ class BaseAgent:
                         remaining_retries,
                     )
                     continue
-                raise ToolError(
-                    f"Tool '{tool_name}' timed out and max retries exceeded"
-                ) from None
+                timeout_error = OperationTimeoutError(
+                    message=f"Tool '{tool_name}' timed out and max retries exceeded",
+                    error_code="TOOL_TIMEOUT",
+                    details={
+                        "tool_name": tool_name,
+                        "timeout_seconds": tool.timeout,
+                        "retries_attempted": tool.retries,
+                    },
+                )
+                ExceptionTracker.track_exception(timeout_error)
+                raise timeout_error from None
 
             except Exception as e:
                 logger.error(
@@ -401,7 +415,17 @@ class BaseAgent:
                         remaining_retries,
                     )
                     continue
-                raise ToolError(f"Tool '{tool_name}' failed: {e}") from e
+                tool_error = ToolError(
+                    message=f"Tool '{tool_name}' failed: {e}",
+                    error_code="TOOL_EXECUTION_ERROR",
+                    details={
+                        "tool_name": tool_name,
+                        "original_error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                ExceptionTracker.track_exception(tool_error)
+                raise tool_error from e
 
     def on_start(self) -> None:
         """Hook called when the agent starts processing a request."""
