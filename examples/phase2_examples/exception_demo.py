@@ -8,6 +8,7 @@ presented to users in a consistent way.
 
 import asyncio
 import logging
+from typing import Any
 
 import requests
 
@@ -34,7 +35,7 @@ class ExceptionDemoAgent(BaseAgent):
     """Agent that demonstrates the various exception handling capabilities of FastADK."""
 
     @tool
-    def validate_user(self, email: str, age: int) -> dict:
+    def validate_user(self, email: str, age: int) -> dict[str, str]:
         """
         Validate user information with robust error handling.
 
@@ -63,7 +64,7 @@ class ExceptionDemoAgent(BaseAgent):
             )
 
     @tool
-    def fetch_external_data(self, url: str) -> dict:
+    def fetch_external_data(self, url: str) -> dict[str, Any]:
         """
         Fetch data from an external API with proper error handling.
 
@@ -81,7 +82,8 @@ class ExceptionDemoAgent(BaseAgent):
             response = requests.get(str(url_prop), timeout=5)
             response.raise_for_status()
 
-            return response.json()
+            result = response.json()
+            return result
         except requests.exceptions.RequestException as e:
             # Automatically translate request exceptions
             raise ExceptionTranslator.translate_exception(e)
@@ -94,7 +96,7 @@ class ExceptionDemoAgent(BaseAgent):
             ) from e
 
     @tool
-    def check_configuration(self, config_type: str) -> dict:
+    def check_configuration(self, config_type: str) -> dict[str, str]:
         """
         Check configuration settings with proper error handling.
 
@@ -130,7 +132,7 @@ class ExceptionDemoAgent(BaseAgent):
             return {"status": "valid", "message": "Security configuration is valid"}
 
 
-async def main():
+async def main() -> None:
     """Run the demo agent with various exception scenarios."""
     agent = ExceptionDemoAgent()
 
