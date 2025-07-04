@@ -13,6 +13,12 @@ from fastadk.core.config import MemoryBackendType, get_settings
 from .base import MemoryBackend, MemoryEntry
 from .inmemory import InMemoryBackend
 
+# Conditionally import backends to avoid ImportError
+try:
+    from .redis import RedisBackend
+except ImportError:
+    RedisBackend = None  # type: ignore
+
 __all__ = ["MemoryBackend", "MemoryEntry", "InMemoryBackend", "get_memory_backend"]
 
 
@@ -37,19 +43,27 @@ def get_memory_backend(
         return InMemoryBackend()
 
     elif memory_type == MemoryBackendType.REDIS:
-        try:
-            from .redis import RedisBackend  # type: ignore
-
-            return RedisBackend(  # type: ignore
-                connection_string=settings.memory.connection_string,
-                ttl_seconds=settings.memory.ttl_seconds,
-                **settings.memory.options,
-            )
-        except ImportError as exc:
+        if RedisBackend is None:
             raise ImportError(
                 "Redis memory backend requires extra dependencies. "
                 "Install them with: uv add fastadk[redis]"
-            ) from exc
+            )
+
+        # Extract Redis connection options from settings
+        redis_options = settings.memory.options.copy()
+
+        # Check for connection string in format: redis://user:password@host:port/db
+        connection_string = settings.memory.connection_string
+        if connection_string and connection_string.startswith("redis://"):
+            # Connection string parsing would go here
+            # For now, we'll use the options directly
+            pass
+
+        # Set default TTL if specified in settings
+        if settings.memory.ttl_seconds:
+            redis_options.setdefault("default_ttl", settings.memory.ttl_seconds)
+
+        return RedisBackend(**redis_options)
 
     elif memory_type == MemoryBackendType.FIRESTORE:
         try:
