@@ -273,7 +273,10 @@ class ExceptionTranslator:
                 details["status_code"] = response.status_code
                 try:
                     details["response_body"] = response.json()
-                except (ValueError, TypeError):  # More specific exceptions for JSON parsing
+                except (
+                    ValueError,
+                    TypeError,
+                ):  # More specific exceptions for JSON parsing
                     details["response_text"] = response.text[:500]  # Limit text size
 
         # Get appropriate FastADK error type
