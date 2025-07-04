@@ -1,0 +1,17 @@
+# Ruff configuration file
+
+# Format settings
+[format]
+# Exclude specific files from formatting
+exclude = ["examples/phase3_examples/workflow_demo.py"]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# Lint settings
+[lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]  # Let black handle line length
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]

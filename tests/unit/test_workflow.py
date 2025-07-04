@@ -238,6 +238,7 @@ class TestWorkflow:
     @pytest.mark.asyncio
     async def test_simple_workflow(self):
         """Test a simple workflow with one step."""
+
         # Define a simple multiply function
         def multiply_by_two(x):
             return x * 2
