@@ -8,6 +8,7 @@ import time
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
 
 from fastadk.memory.inmemory import InMemoryBackend
 
@@ -15,7 +16,7 @@ from fastadk.memory.inmemory import InMemoryBackend
 class TestInMemoryBackend:
     """Tests for the InMemoryBackend class."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def memory(self):
         """Create a new InMemoryBackend instance."""
         return InMemoryBackend()
@@ -187,18 +188,52 @@ class TestInMemoryBackend:
 
 # We'll use pytest's monkeypatch to mock Redis for unit testing
 @pytest.mark.asyncio
-@patch("redis.asyncio.Redis")
-async def test_redis_backend_initialization(mock_redis):
+async def test_redis_backend_initialization():
     """Test initializing RedisBackend with different parameters."""
     # Import here to avoid ImportError if redis package is not installed
     try:
+        import importlib.util
+        if importlib.util.find_spec("redis") is None:
+            pytest.skip("Redis dependencies not installed")
+            
         from fastadk.memory.redis import RedisBackend
+        # Only run the test if redis is installed
+        with patch("redis.asyncio.Redis") as mock_redis:
+            # Setup the mock
+            mock_instance = AsyncMock()
+            mock_redis.return_value = mock_instance
+            
+            # Test with default parameters
+            backend = RedisBackend()
+            assert backend.prefix == "fastadk:"
+            mock_redis.assert_called_with(
+                host="localhost",
+                port=6379,
+                db=0,
+                decode_responses=True,
+                password=None,
+            )
+            
+            # Test with custom parameters
+            backend = RedisBackend(
+                host="redis-server",
+                port=6380,
+                db=1,
+                password="secret",
+                prefix="custom:",
+                ssl=True,
+            )
+            assert backend.prefix == "custom:"
+            mock_redis.assert_called_with(
+                host="redis-server",
+                port=6380,
+                db=1,
+                decode_responses=True,
+                password="secret",
+                ssl=True,
+            )
     except ImportError:
         pytest.skip("Redis dependencies not installed")
-
-    # Setup the mock
-    mock_instance = AsyncMock()
-    mock_redis.return_value = mock_instance
 
     # Test with default parameters
     backend = RedisBackend()
@@ -236,16 +271,89 @@ async def test_redis_backend_operations():
     """Test Redis backend operations."""
     # Import here to avoid ImportError if redis package is not installed
     try:
+        import importlib.util
+        if importlib.util.find_spec("redis") is None:
+            pytest.skip("Redis dependencies not installed")
+            
         from fastadk.memory.redis import RedisBackend
+        # Create a mock Redis client
+        mock_redis = AsyncMock()
+        
+        # Mock the Redis initialization to avoid actual connection
+        with patch('redis.asyncio.Redis', return_value=mock_redis):
+            # Create the backend with the mock client
+            backend = RedisBackend(host="localhost")
+            
+            # Test get operation
+            mock_redis.get.return_value = '{"key": "test-key", "data": "test-value", "created_at": 1625097600.0, "expires_at": null, "metadata": {}}'
+            entry = await backend.get("test-key")
+            mock_redis.get.assert_called_with("fastadk:test-key")
+            assert entry is not None
+            assert entry.key == "test-key"
+            assert entry.data == "test-value"
+            
+            # Test get with missing key
+            mock_redis.get.return_value = None
+            entry = await backend.get("missing-key")
+            assert entry is None
+            
+            # Test set operation
+            entry = await backend.set("test-key", "test-value")
+            assert entry.key == "test-key"
+            assert entry.data == "test-value"
+            mock_redis.set.assert_called_once()
+            
+            # Test set with TTL
+            mock_redis.reset_mock()
+            entry = await backend.set("test-key", "test-value", ttl_seconds=60)
+            assert entry.key == "test-key"
+            assert entry.data == "test-value"
+            assert entry.expires_at is not None
+            mock_redis.setex.assert_called_once()
+            
+            # Test delete operation
+            mock_redis.reset_mock()
+            mock_redis.delete.return_value = 1
+            result = await backend.delete("test-key")
+            mock_redis.delete.assert_called_with("fastadk:test-key")
+            assert result is True
+            
+            # Test delete non-existent key
+            mock_redis.reset_mock()
+            mock_redis.delete.return_value = 0
+            result = await backend.delete("missing-key")
+            assert result is False
+            
+            # Test exists operation
+            mock_redis.reset_mock()
+            mock_redis.exists.return_value = 1
+            mock_redis.get.return_value = '{"key": "test-key", "data": "test-value", "created_at": 1625097600.0, "expires_at": null, "metadata": {}}'
+            result = await backend.exists("test-key")
+            mock_redis.exists.assert_called_with("fastadk:test-key")
+            assert result is True
+            
+            # Test keys operation
+            mock_redis.reset_mock()
+            mock_redis.keys.return_value = ["fastadk:test-key-1", "fastadk:test-key-2"]
+            keys = await backend.keys("test-*")
+            mock_redis.keys.assert_called_with("fastadk:test-*")
+            assert keys == ["test-key-1", "test-key-2"]
+            
+            # Test clear operation
+            mock_redis.reset_mock()
+            mock_redis.keys.return_value = ["fastadk:test-key-1", "fastadk:test-key-2"]
+            mock_redis.delete.return_value = 2
+            count = await backend.clear("test-*")
+            assert count == 2
+            
+            # Test health check
+            mock_redis.reset_mock()
+            mock_redis.ping.return_value = True
+            result = await backend.health_check()
+            mock_redis.ping.assert_called_once()
+            assert result is True
     except ImportError:
         pytest.skip("Redis dependencies not installed")
-
-    # Create a mock Redis client
-    mock_redis = AsyncMock()
-
-    # Create the backend with the mock client
-    backend = RedisBackend(host="localhost")
-    backend.redis = mock_redis
 
     # Test get operation
     mock_redis.get.return_value = '{"key": "test-key", "data": "test-value", "created_at": 1625097600.0, "expires_at": null, "metadata": {}}'
