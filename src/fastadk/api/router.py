@@ -9,13 +9,24 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, FastAPI, HTTPException, Path, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Path, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from fastadk import __version__
 from fastadk.core.agent import BaseAgent
 from fastadk.core.config import get_settings
-from fastadk.core.exceptions import AgentError, ToolError
+from fastadk.core.exceptions import (
+    AgentError,
+    AuthenticationError,
+    FastADKError,
+    NotFoundError,
+    OperationTimeoutError,
+    RateLimitError,
+    ServiceUnavailableError,
+    ToolError,
+    ValidationError,
+)
 
 from .models import (
     AgentInfo,
@@ -256,13 +267,13 @@ def create_api_router() -> APIRouter:
             )
 
         except AgentError as e:
-            logger.error(f"Agent error: {e}")
-            raise HTTPException(status_code=400, detail=str(e))
+            logger.error("Agent error: %s", e)
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
-            logger.exception(f"Unexpected error: {e}")
+            logger.exception("Unexpected error: %s", e)
             raise HTTPException(
                 status_code=500, detail=f"Internal server error: {str(e)}"
-            )
+            ) from e
 
     @router.post("/agents/{agent_name}/tools", response_model=ToolResponse)
     async def execute_tool(
@@ -298,13 +309,13 @@ def create_api_router() -> APIRouter:
             )
 
         except ToolError as e:
-            logger.error(f"Tool error: {e}")
-            raise HTTPException(status_code=400, detail=str(e))
+            logger.error("Tool error: %s", e)
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
-            logger.exception(f"Unexpected error: {e}")
+            logger.exception("Unexpected error: %s", e)
             raise HTTPException(
                 status_code=500, detail=f"Internal server error: {str(e)}"
-            )
+            ) from e
 
     @router.get("/stream/agents/{agent_name}")
     async def stream_agent(
@@ -354,10 +365,10 @@ def create_api_router() -> APIRouter:
                 {"status": "success", "message": f"Session {session_id} cleared"}
             )
         except Exception as e:
-            logger.exception(f"Error clearing session: {e}")
+            logger.exception("Error clearing session: %s", e)
             raise HTTPException(
                 status_code=500, detail=f"Error clearing session: {str(e)}"
-            )
+            ) from e
 
     return router
 
@@ -379,6 +390,55 @@ def create_app() -> FastAPI:
 
     # Add the FastADK router
     app.include_router(create_api_router())
+
+    # Add exception handlers
+    @app.exception_handler(FastADKError)
+    async def fastadk_exception_handler(_: Request, exc: FastADKError) -> JSONResponse:
+        """Handle FastADK exceptions and convert to appropriate HTTP responses."""
+        status_code = 500
+
+        # Map exception types to status codes
+        if isinstance(exc, ValidationError) or isinstance(exc, RequestValidationError):
+            status_code = 400
+        elif isinstance(exc, AuthenticationError):
+            status_code = 401
+        elif isinstance(exc, RateLimitError):
+            status_code = 429
+        elif isinstance(exc, NotFoundError):
+            status_code = 404
+        elif isinstance(exc, OperationTimeoutError):
+            status_code = 408
+        elif isinstance(exc, ServiceUnavailableError):
+            status_code = 503
+
+        # Prepare the response
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "error": True,
+                "message": exc.message,
+                "error_code": exc.error_code,
+                "details": exc.details,
+                "type": exc.__class__.__name__,
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        _: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """Handle Pydantic validation errors."""
+        # Convert validation error to FastADK format
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": True,
+                "message": "Request validation failed",
+                "error_code": "REQUEST_VALIDATION_ERROR",
+                "details": {"errors": exc.errors(), "body": exc.body},
+                "type": "ValidationError",
+            },
+        )
 
     @app.on_event("startup")
     async def startup_event() -> None:
