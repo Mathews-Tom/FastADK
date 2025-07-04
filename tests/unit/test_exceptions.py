@@ -6,13 +6,19 @@ Tests for FastADK exception classes.
 # pylint: disable=no-member,protected-access
 
 import pytest
+import requests
 
 from fastadk.core.exceptions import (
     AgentError,
     ConfigurationError,
+    ExceptionTranslator,
     FastADKError,
     MemoryBackendError,
+    NotFoundError,
+    OperationTimeoutError,
     PluginError,
+    RateLimitError,
+    ServiceUnavailableError,
     ToolError,
     ValidationError,
 )
@@ -129,3 +135,73 @@ class TestExceptionChaining:
         except FastADKError as error:
             assert error.message == "Context error"
             assert isinstance(error.__context__, ValueError)
+
+
+class TestExceptionTranslator:
+    """Test the ExceptionTranslator functionality."""
+
+    def test_translate_value_error(self):
+        """Test translation of ValueError to ValidationError."""
+        original_error = ValueError("Invalid value")
+        translated = ExceptionTranslator.translate_exception(original_error)
+
+        assert isinstance(translated, ValidationError)
+        assert translated.error_code == "EXTERNAL_VALUEERROR"
+        assert "Invalid value" in translated.message
+        assert translated.details["exception_type"] == "ValueError"
+        assert translated.__cause__ == original_error
+
+    def test_translate_key_error(self):
+        """Test translation of KeyError to NotFoundError."""
+        original_error = KeyError("missing_key")
+        translated = ExceptionTranslator.translate_exception(original_error)
+
+        assert isinstance(translated, NotFoundError)
+        assert "missing_key" in translated.details["original_error"]
+
+    def test_translate_with_custom_message_and_code(self):
+        """Test translation with custom message and error code."""
+        original_error = TypeError("Type mismatch")
+        translated = ExceptionTranslator.translate_exception(
+            original_error,
+            default_message="Custom error message",
+            default_error_code="CUSTOM_ERROR",
+        )
+
+        assert translated.message == "Custom error message"
+        assert translated.error_code == "CUSTOM_ERROR"
+        assert translated.details["exception_type"] == "TypeError"
+        assert translated.details["original_error"] == "Type mismatch"
+
+    def test_translate_requests_timeout(self):
+        """Test translation of requests.Timeout to OperationTimeoutError."""
+        original_error = requests.exceptions.Timeout("Request timed out")
+        translated = ExceptionTranslator.translate_exception(original_error)
+
+        assert isinstance(translated, OperationTimeoutError)
+        assert "timed out" in translated.message
+
+    def test_translate_requests_connection_error(self):
+        """Test translation of requests.ConnectionError to ServiceUnavailableError."""
+        original_error = requests.exceptions.ConnectionError("Connection failed")
+        translated = ExceptionTranslator.translate_exception(original_error)
+
+        assert isinstance(translated, ServiceUnavailableError)
+        assert "Connection failed" in translated.details["original_error"]
+
+    def test_register_custom_mapping(self):
+        """Test registering a custom exception mapping."""
+
+        # Create a custom exception type
+        class CustomError(Exception):
+            pass
+
+        # Register a mapping from CustomError to RateLimitError
+        ExceptionTranslator.register_exception_mapping(CustomError, RateLimitError)
+
+        # Test the mapping
+        original_error = CustomError("Custom error occurred")
+        translated = ExceptionTranslator.translate_exception(original_error)
+
+        assert isinstance(translated, RateLimitError)
+        assert "Custom error occurred" in translated.details["original_error"]

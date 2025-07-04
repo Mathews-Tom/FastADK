@@ -1,11 +1,17 @@
 """
 Custom exception classes for FastADK.
 
-This module provides a hierarchy of exception classes that are used
-throughout FastADK to report various error conditions.
+This module provides a comprehensive hierarchy of exception classes that are used
+throughout FastADK to report various error conditions with detailed context
+and standardized error codes for improved debugging and error handling.
 """
 
+import inspect
+import time
+import traceback
 from typing import Any
+
+import requests
 
 
 class FastADKError(Exception):
@@ -95,3 +101,216 @@ class OperationTimeoutError(FastADKError):
 
 class NotFoundError(FastADKError):
     """Raised when a requested resource is not found."""
+
+
+class ExceptionTracker:
+    """
+    Tracks exceptions for monitoring and analysis.
+
+    This class provides methods to track, categorize, and analyze exceptions
+    that occur during runtime, helping identify patterns and problematic areas.
+    """
+
+    # Class-level storage for exception statistics
+    _exception_counts: dict[str, int] = {}
+    _exception_details: list[dict[str, Any]] = []
+    _max_stored_exceptions = 100  # Limit memory usage
+
+    @classmethod
+    def track_exception(cls, exception: FastADKError) -> None:
+        """
+        Track an exception occurrence.
+
+        Args:
+            exception: The FastADK exception to track
+        """
+        # Increment count for this error code
+        error_code = exception.error_code or "UNKNOWN"
+        cls._exception_counts[error_code] = cls._exception_counts.get(error_code, 0) + 1
+
+        # Store exception details (limiting to prevent memory issues)
+        if len(cls._exception_details) >= cls._max_stored_exceptions:
+            cls._exception_details.pop(0)  # Remove oldest
+
+        # Add timestamp and store
+        cls._exception_details.append(
+            {
+                "timestamp": time.time(),
+                "error_code": error_code,
+                "message": exception.message,
+                "details": exception.details,
+                "exception_type": exception.__class__.__name__,
+            }
+        )
+
+    @classmethod
+    def get_exception_counts(cls) -> dict[str, int]:
+        """
+        Get counts of exceptions by error code.
+
+        Returns:
+            Dictionary mapping error codes to occurrence counts
+        """
+        return cls._exception_counts.copy()
+
+    @classmethod
+    def get_recent_exceptions(cls, limit: int = 10) -> list[dict[str, Any]]:
+        """
+        Get the most recent exceptions.
+
+        Args:
+            limit: Maximum number of exceptions to return
+
+        Returns:
+            List of recent exception details
+        """
+        return cls._exception_details[-limit:]
+
+    @classmethod
+    def clear_tracking_data(cls) -> None:
+        """Clear all tracked exception data."""
+        cls._exception_counts.clear()
+        cls._exception_details.clear()
+
+    @classmethod
+    def get_summary(cls) -> dict[str, Any]:
+        """
+        Get a summary of exception tracking data.
+
+        Returns:
+            Summary statistics about tracked exceptions
+        """
+        total = sum(cls._exception_counts.values())
+
+        # Get top error codes
+        top_errors = sorted(
+            cls._exception_counts.items(), key=lambda x: x[1], reverse=True
+        )[:5]
+
+        # Calculate time range if we have exceptions
+        time_range = None
+        if cls._exception_details:
+            oldest = min(e["timestamp"] for e in cls._exception_details)
+            newest = max(e["timestamp"] for e in cls._exception_details)
+            time_range = newest - oldest
+
+        return {
+            "total_exceptions": total,
+            "unique_error_codes": len(cls._exception_counts),
+            "top_errors": dict(top_errors),
+            "tracked_period_seconds": time_range,
+        }
+
+
+class ExceptionTranslator:
+    """
+    Translates third-party exceptions to FastADK exceptions.
+
+    This class provides methods to convert common external exceptions
+    (like those from requests, json, etc.) into appropriate FastADK
+    exceptions, ensuring consistent error handling throughout the application.
+    """
+
+    # Mapping of exception types to FastADK error types
+    _exception_map: dict[type[Exception], type[FastADKError]] = {
+        requests.exceptions.Timeout: OperationTimeoutError,
+        requests.exceptions.ConnectionError: ServiceUnavailableError,
+        requests.exceptions.RequestException: ServiceUnavailableError,
+        ValueError: ValidationError,
+        TypeError: ValidationError,
+        KeyError: NotFoundError,
+        FileNotFoundError: NotFoundError,
+    }
+
+    @classmethod
+    def translate_exception(
+        cls,
+        exc: Exception,
+        default_message: str | None = None,
+        default_error_code: str | None = None,
+    ) -> FastADKError:
+        """
+        Convert external exceptions to FastADK exceptions.
+
+        Args:
+            exc: The original exception to translate
+            default_message: Optional message to use if no specific one is generated
+            default_error_code: Optional error code to use if no specific one is generated
+
+        Returns:
+            A FastADK exception that wraps the original exception
+        """
+        exc_type = type(exc)
+
+        # Get the call stack for debugging context
+        stack = traceback.extract_stack()[:-1]  # Exclude this function call
+        call_info = stack[-1] if stack else None
+
+        # Prepare error details
+        details: dict[str, Any] = {
+            "exception_type": exc_type.__name__,
+            "original_error": str(exc),
+        }
+
+        # Add call location if available
+        if call_info:
+            details["location"] = f"{call_info.filename}:{call_info.lineno}"
+
+        # Find calling function for context
+        frame = inspect.currentframe()
+        if frame:
+            caller_frame = frame.f_back
+            if caller_frame:
+                caller_info = inspect.getframeinfo(caller_frame)
+                details["caller"] = f"{caller_info.function}"
+
+        # Handle requests exceptions specifically
+        if isinstance(exc, requests.exceptions.RequestException) and hasattr(
+            exc, "response"
+        ):
+            response = exc.response
+            if response:
+                details["status_code"] = response.status_code
+                try:
+                    details["response_body"] = response.json()
+                except Exception:
+                    details["response_text"] = response.text[:500]  # Limit text size
+
+        # Get appropriate FastADK error type
+        error_class = cls._exception_map.get(exc_type, FastADKError)
+
+        # Generate appropriate error code
+        if default_error_code:
+            error_code = default_error_code
+        else:
+            # Generate based on exception type
+            error_code = f"EXTERNAL_{exc_type.__name__.upper()}"
+
+        # Create message if not provided
+        if default_message:
+            message = default_message
+        else:
+            message = f"External error: {str(exc)}"
+
+        # Create the FastADK exception, preserving the original as cause
+        fastadk_error = error_class(
+            message=message, error_code=error_code, details=details
+        )
+
+        # Set the original exception as the cause
+        fastadk_error.__cause__ = exc
+
+        return fastadk_error
+
+    @classmethod
+    def register_exception_mapping(
+        cls, external_exception: type[Exception], fastadk_exception: type[FastADKError]
+    ) -> None:
+        """
+        Register a new exception mapping.
+
+        Args:
+            external_exception: The external exception class to translate from
+            fastadk_exception: The FastADK exception class to translate to
+        """
+        cls._exception_map[external_exception] = fastadk_exception
