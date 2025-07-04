@@ -95,7 +95,7 @@ class TestRetryDecorator:
         async def slow_function():
             await asyncio.sleep(0.3)
             return "success"
-            
+
         # First call raises error, second call takes too long
         mock_func = AsyncMock(side_effect=[OperationError("Fail"), slow_function()])
 
@@ -199,7 +199,7 @@ class TestCircuitBreaker:
     async def test_circuit_half_open_after_timeout(self):
         """Test circuit transitions to half-open after timeout."""
         mock_func = AsyncMock(side_effect=OperationError("Service unavailable"))
-        
+
         # Create a fresh circuit breaker for this test
         decorated = circuit_breaker(
             failure_threshold=2,
@@ -239,7 +239,7 @@ class TestCircuitBreaker:
                 "normal operation",  # This confirms circuit is closed
             ]
         )
-        
+
         # Create a fresh circuit breaker for this test
         decorated = circuit_breaker(
             failure_threshold=2,
