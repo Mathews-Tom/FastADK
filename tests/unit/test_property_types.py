@@ -4,6 +4,7 @@ Tests for FastADK property types.
 
 import pytest
 
+from fastadk.core.exceptions import ValidationError
 from fastadk.core.property_types import (
     EmailProperty,
     LimitedStringProperty,
@@ -26,7 +27,7 @@ class TestValidatedProperty:
         assert prop.validate() is True
 
         # Invalid case
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             ValidatedProperty(0, [lambda x: x > 0])
 
     def test_equality_comparison(self):
@@ -72,7 +73,7 @@ class TestURLProperty:
         ]
 
         for url in invalid_urls:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValidationError):
                 URLProperty(url)
 
 
@@ -105,7 +106,7 @@ class TestEmailProperty:
         ]
 
         for email in invalid_emails:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValidationError):
                 EmailProperty(email)
 
 
@@ -127,13 +128,13 @@ class TestQuantityProperty:
         QuantityProperty(5, "m", min_value=0, max_value=10)
 
         # Invalid cases
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             QuantityProperty(-1, "m", min_value=0)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             QuantityProperty(11, "m", max_value=10)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             QuantityProperty(15, "m", min_value=0, max_value=10)
 
 
@@ -160,7 +161,7 @@ class TestSecureProperty:
         SecureProperty("12345", min_length=5)
 
         # Invalid case
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             SecureProperty("123", min_length=5)
 
 
@@ -174,10 +175,10 @@ class TestStringProperties:
         NonEmptyStringProperty("  hello  ")  # Whitespace is trimmed in validation
 
         # Invalid cases
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             NonEmptyStringProperty("")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             NonEmptyStringProperty("   ")  # Just whitespace
 
     def test_limited_string(self):
@@ -187,9 +188,9 @@ class TestStringProperties:
         LimitedStringProperty("hello", min_length=1, max_length=10)
 
         # Invalid cases - too short
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             LimitedStringProperty("", min_length=1)
 
         # Invalid cases - too long
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             LimitedStringProperty("hello world", min_length=1, max_length=5)
