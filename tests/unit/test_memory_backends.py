@@ -193,10 +193,12 @@ async def test_redis_backend_initialization():
     # Import here to avoid ImportError if redis package is not installed
     try:
         import importlib.util
+
         if importlib.util.find_spec("redis") is None:
             pytest.skip("Redis dependencies not installed")
 
         from fastadk.memory.redis import RedisBackend
+
         # Only run the test if redis is installed
         with patch("redis.asyncio.Redis") as mock_redis:
             # Setup the mock
@@ -272,15 +274,17 @@ async def test_redis_backend_operations():
     # Import here to avoid ImportError if redis package is not installed
     try:
         import importlib.util
+
         if importlib.util.find_spec("redis") is None:
             pytest.skip("Redis dependencies not installed")
 
         from fastadk.memory.redis import RedisBackend
+
         # Create a mock Redis client
         mock_redis = AsyncMock()
 
         # Mock the Redis initialization to avoid actual connection
-        with patch('redis.asyncio.Redis', return_value=mock_redis):
+        with patch("redis.asyncio.Redis", return_value=mock_redis):
             # Create the backend with the mock client
             backend = RedisBackend(host="localhost")
 

@@ -85,12 +85,15 @@ class TestRetryDecorator:
         assert mock_func.call_count == 3
 
         # Check timing - ensure backoff is working
-        delays = [start_times[i] - start_times[i - 1] for i in range(1, len(start_times))]
+        delays = [
+            start_times[i] - start_times[i - 1] for i in range(1, len(start_times))
+        ]
         assert delays[1] > delays[0]  # Second delay should be longer
 
     @pytest.mark.asyncio
     async def test_retry_timeout_with_multiple_attempts(self):
         """Test timeout with multiple retry attempts."""
+
         # Define a function that sleeps longer than the timeout
         async def slow_function():
             await asyncio.sleep(0.3)
