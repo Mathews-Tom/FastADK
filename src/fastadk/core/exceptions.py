@@ -103,6 +103,22 @@ class NotFoundError(FastADKError):
     """Raised when a requested resource is not found."""
 
 
+class OperationError(FastADKError):
+    """Raised when an operation fails for any reason."""
+
+
+class RetryError(FastADKError):
+    """Raised when all retry attempts have failed."""
+
+
+class ServiceConnectionError(FastADKError):
+    """Raised when a connection to an external service fails."""
+
+
+class WorkflowError(FastADKError):
+    """Raised when there are errors in workflow execution."""
+
+
 class ExceptionTracker:
     """
     Tracks exceptions for monitoring and analysis.

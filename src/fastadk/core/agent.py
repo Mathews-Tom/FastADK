@@ -33,6 +33,35 @@ from .exceptions import (
 # Load environment variables from .env file
 load_dotenv()
 
+# Dictionary to store registered agent classes
+_registered_agents: dict[str, type["BaseAgent"]] = {}
+
+
+def get_registered_agent(name: str) -> type["BaseAgent"] | None:
+    """
+    Get a registered agent class by name.
+
+    Args:
+        name: Name of the agent class
+
+    Returns:
+        Agent class if found, None otherwise
+    """
+    return _registered_agents.get(name)
+
+
+def register_agent(agent_class: type["BaseAgent"]) -> None:
+    """
+    Register an agent class.
+
+    Args:
+        agent_class: The agent class to register
+    """
+    name = agent_class.__name__
+    _registered_agents[name] = agent_class
+    logging.debug("Registered agent class: %s", name)
+
+
 # Type definitions
 T = TypeVar("T")
 AgentMethod = Callable[..., Any]
@@ -466,6 +495,9 @@ def Agent(
         # Add any additional kwargs as class variables
         for key, value in kwargs.items():
             setattr(cls, f"_{key}", value)
+
+        # Register the agent class
+        register_agent(cls)
 
         return cls
 

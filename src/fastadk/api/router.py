@@ -7,11 +7,17 @@ This module provides the FastAPI router for serving FastADK agents via HTTP.
 import logging
 import time
 import uuid
-from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, FastAPI, HTTPException, Path, Query, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Path, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
+
+try:
+    import sse_starlette.sse  # noqa: F401
+
+    _has_sse = True
+except ImportError:
+    _has_sse = False
 
 from fastadk import __version__
 from fastadk.core.agent import BaseAgent
@@ -317,32 +323,7 @@ def create_api_router() -> APIRouter:
                 status_code=500, detail=f"Internal server error: {str(e)}"
             ) from e
 
-    @router.get("/stream/agents/{agent_name}")
-    async def stream_agent(
-        prompt: str = Query(..., description="The user's prompt or query"),
-        agent_name: str = Path(..., description="Name of the agent"),
-        session_id: str | None = Query(None, description="Session identifier"),
-    ) -> StreamingResponse:
-        """
-        Stream an agent's response for the given input.
-
-        Args:
-            prompt: The user's prompt
-            agent_name: Name of the agent
-            session_id: Session identifier
-
-        Returns:
-            A streaming response with the agent's output
-        """
-
-        # This is a placeholder for streaming functionality
-        # Actual implementation will be added in Phase 3
-        # For now, return a simple message
-        async def fake_stream() -> AsyncIterator[str]:
-            yield f"Streaming not yet implemented for agent {agent_name}\n"
-            yield "This feature will be available in Phase 3\n"
-
-        return StreamingResponse(fake_stream(), media_type="text/event-stream")
+    # Remove placeholder streaming endpoint as it's now implemented in streaming.py
 
     @router.delete("/agents/{agent_name}/sessions/{session_id}")
     async def clear_agent_session(
@@ -388,8 +369,20 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # Add the FastADK router
-    app.include_router(create_api_router())
+    # Add the FastADK routers
+    api_router = create_api_router()
+    app.include_router(api_router)
+
+    # Add streaming router if SSE is available
+    if _has_sse:
+        try:
+            from .streaming import create_streaming_router
+
+            streaming_router = create_streaming_router()
+            app.include_router(streaming_router, tags=["FastADK Streaming"])
+            logger.info("Streaming API endpoints enabled")
+        except ImportError as e:
+            logger.warning(f"Streaming API endpoints disabled: {str(e)}")
 
     # Add exception handlers
     @app.exception_handler(FastADKError)
