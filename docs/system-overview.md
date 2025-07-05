@@ -8,6 +8,8 @@ FastADK (Fast Agent Development Kit) is a developer-friendly framework built on 
 
 Think of FastADK as the "FastAPI for AI agents" – it brings the same developer experience improvements to agent development that FastAPI brought to web API development.
 
+FastADK is designed to be an **open-source** project with the potential for optional commercial add-ons in the future. It targets Python 3.10+ and leverages familiar libraries in the Python ecosystem, including FastAPI for web serving, Pydantic for data models, and Typer/Click for CLI interfaces.
+
 ## Why FastADK?
 
 ### The Agent Development Challenge
@@ -20,6 +22,9 @@ Building AI agents traditionally involves:
 - Error-prone type checking and validation
 - Building HTTP APIs from scratch
 - Limited standardization and reusability
+- Manual wiring of tool registration and function calling
+- Custom implementation of agent lifecycle management
+- Building error handling and retry mechanisms from scratch
 
 ### FastADK's Solution
 
@@ -32,8 +37,19 @@ FastADK addresses these challenges with:
 - **HTTP API Integration**: Serve agents via REST APIs with zero additional code
 - **Comprehensive Error Handling**: Clear, consistent error messages and recovery mechanisms
 - **Workflow Orchestration**: Compose multiple agents and tools to solve complex problems
+- **Lifecycle Hooks**: Easily customize agent behavior with `on_start`, `on_input`, `on_finish`, etc.
+- **Standardized Configuration**: Centralized configuration via YAML, environment variables, or Pydantic settings
+- **Simplified Tool Registration**: Register tools with a simple `@tool` decorator that handles schema generation
 
 ## Development Efficiency Gains
+
+### Rapid Prototyping and Development
+
+FastADK is designed with developer productivity as a primary goal:
+
+- **CLI Development Tools**: Commands like `agent run`, `agent dev` (with hot-reload), and `agent init` to scaffold projects
+- **Built-in Testing Utilities**: Leverage ADK's evaluation features for agent response testing
+- **Integrated Observability**: Structured logging of agent actions, tool calls, and errors
 
 ### UV for Faster Development
 
@@ -57,6 +73,8 @@ FastADK dramatically reduces the amount of code needed to build functional agent
 | Agent with memory | ~250 lines | ~40 lines | 84% |
 | Agent with HTTP API | ~350 lines | ~30 lines | 91% |
 | Multi-agent workflow | ~500 lines | ~80 lines | 84% |
+
+This reduction in code is achieved through FastADK's high-level abstractions, declarative syntax, and elimination of boilerplate that would otherwise be required when working directly with Google's ADK.
 
 ### Development Time Improvements
 
@@ -103,26 +121,72 @@ graph TD
    - Agent lifecycle management
    - Tool registration and discovery
    - Context handling and state management
+   - BaseAgent class that wraps Google ADK's Agent/LlmAgent
+   - Decorator-based configuration and setup
 
 2. **Provider Adapters**:
    - Unified interface to different LLM providers
    - Request formatting and response parsing
    - Rate limiting and error handling
+   - Model-specific optimizations
 
 3. **Memory System**:
    - Conversation history storage
    - Pluggable backend support
    - Memory retrieval and vectorization
+   - Simple key-value interface (get/set)
+   - Optional integration with Redis or Firestore
 
 4. **Workflow Engine**:
    - Multi-step workflow orchestration
    - Parallel and sequential execution
    - Error handling and recovery
+   - Agent-to-Agent (A2A) communication
 
 5. **HTTP API System**:
    - RESTful endpoints for agent interaction
    - WebSocket support for streaming
    - Authentication and rate limiting
+   - Auto-generated OpenAPI documentation
+   - FastAPI integration for high performance
+
+6. **Configuration Management**:
+   - Centralized configuration system
+   - Support for YAML, environment variables, and Pydantic settings
+   - Configuration for models, memory backends, and logging
+
+7. **CLI and Developer Tools**:
+   - Project scaffolding and initialization
+   - Development server with hot-reload
+   - Testing and debugging utilities
+
+## Supported Agent Types
+
+FastADK is designed to be domain-agnostic, but provides specialized support for these common agent types:
+
+1. **Task-Completion Agents**:
+   - Take a specific task and produce a result, like summarizing documents or processing orders
+   - Often operate in one-shot or a few steps
+   - Benefit from FastADK's structured input/output validation
+   - Examples: document summarizer, code generator, order processor
+
+2. **Tool-Using Agents**:
+   - Leverage external tools and APIs to complete complex tasks
+   - Use LLM reasoning to decide which tools to call and when
+   - Benefit from FastADK's simple `@tool` decorator for registering functions
+   - Examples: research assistant, data analyzer, API orchestrator
+
+3. **Conversational Agents**:
+   - Maintain context over multiple turns to provide a coherent dialogue experience
+   - Benefit from FastADK's built-in memory management
+   - Can have personas, goals, and specialized knowledge
+   - Examples: customer support bot, personal assistant, FAQ system
+
+4. **Multi-Agent Systems**:
+   - Orchestrate multiple specialized agents to collaborate on complex tasks
+   - Use FastADK's workflow engine for coordination
+   - Can leverage Agent-to-Agent (A2A) communication
+   - Examples: research teams, complex business workflows, hierarchical task systems
 
 ## User Workflow
 
@@ -379,6 +443,54 @@ class AnthropicAgent(BaseAgent):
     # Agent implementation...
 ```
 
+## Integration and Deployment
+
+FastADK agents can be easily integrated into various environments:
+
+### Web Applications
+
+FastADK agents can be exposed as REST APIs for integration with web applications. The framework generates OpenAPI documentation automatically, making it easy to integrate with frontend frameworks or other backend services.
+
+```python
+# Create a FastAPI application with registered agents
+from fastadk import create_app, registry
+from myagents import WeatherAgent, TaskAgent
+
+registry.register(WeatherAgent)
+registry.register(TaskAgent)
+
+app = create_app()
+
+# Run with: uv run -m uvicorn app:app --reload
+```
+
+### CLI Applications
+
+For command-line tools or data processing pipelines, FastADK agents can be run directly from Python scripts or via the FastADK CLI.
+
+```shell
+# Run an agent in interactive mode
+agent run myagent.py --interactive
+
+# Run with development hot-reload
+agent dev myagent.py
+
+# Test a specific tool in isolation
+agent test-tool myagent.WeatherAgent.get_weather
+```
+
+### Cloud Deployment
+
+FastADK agents can be deployed to various cloud platforms:
+
+- **Google Cloud Run**: Containerized deployment with automatic scaling
+- **Vertex AI Agent Engine**: Google's managed runtime for ADK agents
+- **AWS Lambda**: Serverless deployment for event-driven workloads
+- **Azure Functions**: Event-driven serverless computing
+- **Kubernetes**: For complex multi-agent systems with custom scaling requirements
+
+FastADK is designed to be stateless when needed, storing state in external services like Redis or Firestore, making it ideal for cloud deployments.
+
 ## Benefits for Different User Types
 
 ### For Startups
@@ -387,6 +499,7 @@ class AnthropicAgent(BaseAgent):
 - **Lower Development Costs**: Fewer engineer-hours required
 - **Flexibility**: Easily switch between models as pricing and capabilities evolve
 - **Future-Proofing**: Architecture designed to adapt to new LLM capabilities
+- **Rapid Iteration**: Hot-reload development and testing utilities speed up the build-test cycle
 
 ### For Enterprise Teams
 
@@ -394,6 +507,7 @@ class AnthropicAgent(BaseAgent):
 - **Governance**: Built-in error handling and monitoring
 - **Scalability**: From prototype to production with the same codebase
 - **Maintainability**: Clear separation of concerns and modular design
+- **Integration**: Easy connection to existing systems through HTTP APIs or direct embedding
 
 ### For Individual Developers
 
@@ -401,12 +515,31 @@ class AnthropicAgent(BaseAgent):
 - **Productivity**: Accomplish more with less code
 - **Focus on Value**: Spend time on business logic, not infrastructure
 - **Community**: Access to examples, extensions, and community support
+- **Familiar Experience**: Similar developer experience to FastAPI, making it easy to learn
+
+## Design Philosophy
+
+FastADK's design is guided by several key principles:
+
+1. **Developer Experience First**: Every feature is designed with developer productivity in mind, minimizing boilerplate and maximizing clarity.
+
+2. **Pythonic and Declarative**: Using decorators, type hints, and clear class hierarchies that feel natural to Python developers.
+
+3. **Sensible Defaults, Full Flexibility**: Providing good defaults for quick starts, while allowing full customization for advanced use cases.
+
+4. **Clean Separation of Concerns**: Keeping agent logic separate from infrastructure concerns like HTTP serving or memory management.
+
+5. **Escape Hatches to Raw ADK**: Always allowing direct access to the underlying ADK when needed for advanced use cases.
+
+6. **Progressive Disclosure**: Simple features are simple to use, while advanced features are available but don't complicate basic usage.
 
 ## Conclusion
 
 FastADK provides a powerful, flexible, and developer-friendly framework for building AI agents. By abstracting away the complexities of agent development, it allows developers to focus on creating value rather than writing boilerplate code.
 
 Whether you're building a simple chatbot, a complex multi-agent system, or integrating AI capabilities into an existing application, FastADK provides the tools and patterns to make your development process faster, more reliable, and more enjoyable.
+
+With its high-level abstractions built on Google's solid ADK foundation, FastADK brings the same kind of developer experience improvements to agent development that FastAPI brought to web development.
 
 ## Next Steps
 

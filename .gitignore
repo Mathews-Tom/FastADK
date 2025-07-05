@@ -191,9 +191,3 @@ Thumbs.db
 .fastadk/
 *.fastadk
 logs/
-
-
-
-# Local development files
-docs/FastADK_Deep_Dive_Implementation_Blueprint.md
-docs/FastADK_Designing_a_Developer_Framework_on_Google_ADK.md
