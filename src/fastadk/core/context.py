@@ -394,9 +394,10 @@ class ConversationContext:
         random_component = uuid.uuid4().hex[:8]
 
         if user_id:
-            # Create a deterministic component based on user_id
-            user_hash = hashlib.md5(user_id.encode()).hexdigest()[:8]
-            return f"session_{user_hash}_{timestamp}_{random_component}"
+                # Create a deterministic component based on user_id
+                # Use SHA-256 which is more secure than MD5
+                user_hash = hashlib.sha256(user_id.encode(), usedforsecurity=False).hexdigest()[:8]
+                return f"session_{user_hash}_{timestamp}_{random_component}"
 
         return f"session_{timestamp}_{random_component}"
 
