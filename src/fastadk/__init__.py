@@ -29,7 +29,7 @@ Example:
     ```
 """
 
-__version__ = "0.0.5"  # Updated for Phase 2
+__version__ = "0.1.0"  # First PyPI release
 __author__ = "FastADK Team"
 __email__ = "team@fastadk.dev"
 __license__ = "MIT"
