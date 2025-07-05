@@ -15,12 +15,14 @@ import os
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, Dict, Optional, TypeVar
 
 import google.generativeai as genai
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+from ..tokens.models import TokenBudget, TokenUsage
+from ..tokens.utils import extract_token_usage_from_response, track_token_usage
 from .config import get_settings
 from .exceptions import (
     AgentError,
@@ -167,6 +169,17 @@ class BaseAgent:
         self.tools_used: list[str] = []
         self.session_id: str | None = None
         self.memory_data: dict[str, Any] = {}
+
+        # Initialize token budget if tracking is enabled
+        self.token_budget: Optional[TokenBudget] = None
+        if self.settings.model.track_tokens:
+            self.token_budget = TokenBudget(
+                max_tokens_per_request=self.settings.token_budget.max_tokens_per_request,
+                max_tokens_per_session=self.settings.token_budget.max_tokens_per_session,
+                max_cost_per_request=self.settings.token_budget.max_cost_per_request,
+                max_cost_per_session=self.settings.token_budget.max_cost_per_session,
+                warn_at_percent=self.settings.token_budget.warn_at_percent,
+            )
 
         # Initialize tools from class metadata
         self._initialize_tools()
@@ -342,9 +355,23 @@ class BaseAgent:
     async def _generate_gemini_response(self, user_input: str) -> str:
         """Generate a response using the Gemini model."""
         response = await asyncio.to_thread(
-            lambda: self.model.generate_content(user_input).text
+            lambda: self.model.generate_content(user_input)
         )
-        return str(response)
+
+        # Extract the response text
+        response_text = response.text if hasattr(response, "text") else str(response)
+
+        # Track token usage if enabled
+        if self.settings.model.track_tokens:
+            usage = extract_token_usage_from_response(
+                response, "gemini", self._model_name
+            )
+            if usage:
+                track_token_usage(
+                    usage, self.token_budget, self.settings.model.custom_price_per_1k
+                )
+
+        return response_text
 
     async def _generate_openai_response(self, user_input: str) -> str:
         """Generate a response using the OpenAI model."""
@@ -357,6 +384,32 @@ class BaseAgent:
                     max_tokens=1000,
                 )
             )
+
+            # Track token usage if enabled
+            if self.settings.model.track_tokens:
+                usage = extract_token_usage_from_response(
+                    response, "openai", self._model_name
+                )
+                if usage:
+                    track_token_usage(
+                        usage,
+                        self.token_budget,
+                        self.settings.model.custom_price_per_1k,
+                    )
+
+                    # Check if we exceeded budget limits
+                    if (
+                        self.token_budget
+                        and usage
+                        and self.token_budget.max_tokens_per_request
+                        and usage.total_tokens
+                        > self.token_budget.max_tokens_per_request
+                    ):
+                        logger.warning(
+                            f"Token limit exceeded: {usage.total_tokens} > "
+                            f"{self.token_budget.max_tokens_per_request}"
+                        )
+
             return response.choices[0].message.content or ""  # type: ignore
 
         # Fallback for mock model
@@ -373,6 +426,19 @@ class BaseAgent:
                     max_tokens=1000,
                 )
             )
+
+            # Track token usage if enabled
+            if self.settings.model.track_tokens:
+                usage = extract_token_usage_from_response(
+                    response, "anthropic", self._model_name
+                )
+                if usage:
+                    track_token_usage(
+                        usage,
+                        self.token_budget,
+                        self.settings.model.custom_price_per_1k,
+                    )
+
             return response.content[0].text  # type: ignore
 
         # Fallback for mock model
@@ -458,12 +524,38 @@ class BaseAgent:
 
     def on_start(self) -> None:
         """Hook called when the agent starts processing a request."""
+        pass
 
     def on_finish(self, result: str) -> None:
         """Hook called when the agent finishes processing a request."""
+        pass
 
     def on_error(self, error: Exception) -> None:
         """Hook called when the agent encounters an error."""
+        pass
+
+    def reset_token_budget(self) -> None:
+        """Reset the token budget session counters."""
+        if self.token_budget:
+            self.token_budget.reset_session()
+            logger.info("Token budget session counters reset")
+
+    def get_token_usage_stats(self) -> Dict[str, Any]:
+        """Get the current token usage statistics."""
+        if self.token_budget:
+            return {
+                "session_tokens_used": self.token_budget.session_tokens_used,
+                "session_cost": self.token_budget.session_cost,
+                "has_request_limit": self.token_budget.max_tokens_per_request
+                is not None,
+                "has_session_limit": self.token_budget.max_tokens_per_session
+                is not None,
+                "has_cost_limit": (
+                    self.token_budget.max_cost_per_request is not None
+                    or self.token_budget.max_cost_per_session is not None
+                ),
+            }
+        return {"token_tracking_enabled": False}
 
 
 def Agent(

@@ -78,6 +78,14 @@ class ModelConfig(BaseModel):
         ge=0,
         le=10,
     )
+    track_tokens: bool = Field(
+        default=True,
+        description="Whether to track token usage and cost",
+    )
+    custom_price_per_1k: dict[str, float] = Field(
+        default_factory=dict,
+        description="Custom price per 1K tokens, with 'input' and 'output' keys",
+    )
     additional_params: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional parameters to pass to the model",
@@ -164,6 +172,33 @@ class SecurityConfig(BaseModel):
     )
 
 
+class TokenBudgetConfig(BaseModel):
+    """Configuration for token usage budget."""
+    
+    max_tokens_per_request: int | None = Field(
+        default=None,
+        description="Maximum tokens allowed per request",
+    )
+    max_tokens_per_session: int | None = Field(
+        default=None,
+        description="Maximum tokens allowed per session",
+    )
+    max_cost_per_request: float | None = Field(
+        default=None,
+        description="Maximum cost allowed per request in USD",
+    )
+    max_cost_per_session: float | None = Field(
+        default=None,
+        description="Maximum cost allowed per session in USD",
+    )
+    warn_at_percent: float = Field(
+        default=80.0,
+        description="Warn when budget reaches this percentage",
+        ge=1.0,
+        le=100.0,
+    )
+
+
 class FastADKSettings(BaseSettings):
     """
     Main settings class for FastADK.
@@ -207,6 +242,10 @@ class FastADKSettings(BaseSettings):
     security: SecurityConfig = Field(
         default_factory=SecurityConfig,
         description="Security configuration",
+    )
+    token_budget: TokenBudgetConfig = Field(
+        default_factory=TokenBudgetConfig,
+        description="Token usage budget configuration",
     )
 
     # Framework settings
