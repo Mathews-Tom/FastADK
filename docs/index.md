@@ -52,8 +52,16 @@ FastADK is built by developers, for developers. We've focused on creating an int
 ## Installation
 
 ```bash
-pip install fastadk
+# Install UV (recommended package manager for Python)
+pip install uv
+
+# Install FastADK with UV
+uv pip install fastadk
 ```
+
+FastADK is now available on PyPI, making installation simple and straightforward! We recommend using [UV](https://github.com/astral-sh/uv) for significantly faster and more reliable package management.
+
+[See full installation instructions →](getting-started/installation.md)
 
 ## Quick Example
 
@@ -73,14 +81,15 @@ class MathAgent(BaseAgent):
         """Multiply two numbers together."""
         return a * b
 
-# Run with: fastadk run app.py
-# Or serve HTTP API: fastadk serve app.py
+# Run with: uv run app.py
+# Or serve HTTP API: uv run -m uvicorn app:app --reload
 ```
 
 ## Next Steps
 
 - [Installation](getting-started/installation.md): Detailed installation instructions
 - [Quick Start](getting-started/quick-start.md): Create your first agent in minutes
+- [System Overview](system-overview.md): Comprehensive explanation of FastADK's architecture and benefits
 - [Tutorial](getting-started/tutorial.md): Step-by-step guide to building a complete agent
 - [Examples](examples/weather-agent.md): Real-world examples to learn from
 
