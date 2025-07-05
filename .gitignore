@@ -191,3 +191,6 @@ Thumbs.db
 .fastadk/
 *.fastadk
 logs/
+
+# Local development files
+docs/implementation_plan.md
