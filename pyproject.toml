@@ -269,7 +269,7 @@ exclude_lines = [
 ]
 
 [tool.hatch.version]
-path = "src/fastadk/__init__.py"
+path = "src/fastadk/__about__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fastadk"]

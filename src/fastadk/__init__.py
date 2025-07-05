@@ -29,10 +29,13 @@ Example:
     ```
 """
 
-__version__ = "0.1.0"  # First PyPI release
-__author__ = "FastADK Team"
-__email__ = "team@fastadk.dev"
-__license__ = "MIT"
+# Import package metadata from __about__.py
+from .__about__ import (
+    __author__,
+    __email__,
+    __license__,
+    __version__,
+)
 
 # Core imports
 # API imports
