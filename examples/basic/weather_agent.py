@@ -8,6 +8,13 @@ This agent demonstrates:
 - Loading a system prompt from an external text file.
 - Type hinting for robust tool parameter handling.
 - Docstrings for automatic tool descriptions and help text.
+
+To run this example, you need:
+1. Install httpx: `uv add httpx`
+2. Set up your Gemini API key either by:
+    - Setting an environment variable: `export GEMINI_API_KEY=your_api_key_here`
+    - Or creating a .env file in the project root with: `GEMINI_API_KEY=your_api_key_here`
+        (requires python-dotenv: `uv add python-dotenv`)
 """
 
 import asyncio
@@ -147,12 +154,27 @@ class WeatherAgent(BaseAgent):
 if __name__ == "__main__":
     # This block allows for direct execution of the script for quick testing.
     # It demonstrates how to instantiate and run the agent programmatically.
+    import os
+
     async def test_agent():
         """Test the WeatherAgent with a sample query about London weather."""
-        agent = WeatherAgent()
+        # Check if GEMINI_API_KEY environment variable is set
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            print("\n⚠️  Warning: GEMINI_API_KEY environment variable not found.")
+            print("   The agent might not be able to generate proper responses.")
+            print("   Set it with: export GEMINI_API_KEY=your_api_key_here\n")
 
-        print("\n--- Testing Agent with a sample query ---")
-        response = await agent.run("What's the weather like in London?")
-        print(f"\nFinal Response:\n{response}")
+        try:
+            agent = WeatherAgent()
+            print("\n--- Testing Agent with a sample query ---")
+            response = await agent.run("What's the weather like in London?")
+            print(f"\nFinal Response:\n{response}")
+        except Exception as e:  # pylint: disable=broad-except
+            print(f"\n❌ Error: {str(e)}")
+            print("\nTroubleshooting:")
+            print("1. Make sure your GEMINI_API_KEY is set and valid")
+            print("2. Check your internet connection (needed to access wttr.in)")
+            print("3. Ensure httpx is installed: uv add httpx")
 
     asyncio.run(test_agent())

@@ -13,13 +13,36 @@ key features of FastADK including:
 7. Error handling and fallback mechanisms
 8. Type hints for robust parameter handling
 
-To run this example, you'll need:
-- A Gemini API key in GEMINI_API_KEY environment variable
-- Optional: OpenAI API key in OPENAI_API_KEY environment variable
-- Optional: Anthropic API key in ANTHROPIC_API_KEY environment variable
-- httpx package for API calls: pip install httpx
+Environment Setup:
+------------------
+1. Install dependencies:
+    ```
+    uv add httpx python-dotenv
+    ```
 
-Run with: uv run examples/travel_assistant.py
+2. Set up API keys either via environment variables:
+    ```
+    export GEMINI_API_KEY=your_api_key_here
+    # Optional for multi-provider support:
+    export OPENAI_API_KEY=your_api_key_here
+    export ANTHROPIC_API_KEY=your_api_key_here
+    ```
+
+    Or by creating a .env file in the project root:
+    ```
+    GEMINI_API_KEY=your_api_key_here
+    # Optional for multi-provider support:
+    OPENAI_API_KEY=your_api_key_here
+    ANTHROPIC_API_KEY=your_api_key_here
+    ```
+
+3. Run the example:
+    ```
+    uv run examples/travel_assistant.py
+    ```
+
+Note: This example includes mock data and simulated API calls to demonstrate
+functionality without requiring actual API access.
 """
 
 import asyncio

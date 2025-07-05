@@ -8,6 +8,14 @@ It shows how to:
 3. Create conditional branches in workflows
 4. Handle errors and retries
 5. Compose multiple workflow steps together
+
+To run this example:
+```
+uv run workflow_demo.py
+```
+
+No external API keys or dependencies are required for this example
+as it runs entirely with simulated data.
 """
 
 import asyncio
@@ -212,13 +220,19 @@ async def analyze_finance(data: dict[str, Any]) -> dict[str, Any]:
         "recommendation": (
             "Strong buy"
             if change > 0 and price_trend > 1
-            else "Hold" if -0.5 <= change <= 0.5 else "Sell" if change < -1 else "Watch"
+            else "Hold"
+            if -0.5 <= change <= 0.5
+            else "Sell"
+            if change < -1
+            else "Watch"
         ),
         "price_trend": f"{price_trend:.2f}% over last {len(history)} days",
         "volatility": (
             "high"
             if volatility_factor > 2
-            else "medium" if volatility_factor > 1 else "low"
+            else "medium"
+            if volatility_factor > 1
+            else "low"
         ),
     }
 

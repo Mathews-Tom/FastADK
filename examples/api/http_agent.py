@@ -1,7 +1,33 @@
 """
-Example HTTP Agent for FastADK Phase 2.
+Example HTTP Agent for FastADK.
 
-This example demonstrates serving a simple agent via HTTP API.
+This example demonstrates serving multiple agents via HTTP API.
+It shows how to:
+1. Create multiple agent classes with different providers
+2. Register them with the FastADK registry
+3. Create a FastAPI application that serves all agents
+4. Run the server with uvicorn
+
+To run this example, you need:
+1. Install requirements: `uv add fastapi uvicorn python-dotenv`
+2. Set up API keys for the LLM providers you want to use, either via:
+
+    Environment variables:
+    ```
+    export GEMINI_API_KEY=your_key_here
+    export OPENAI_API_KEY=your_key_here
+    export ANTHROPIC_API_KEY=your_key_here
+    ```
+
+    Or by creating a .env file in the project root:
+    ```
+    GEMINI_API_KEY=your_key_here
+    OPENAI_API_KEY=your_key_here
+    ANTHROPIC_API_KEY=your_key_here
+    ```
+
+3. Run the server: `uv run http_agent.py`
+4. Access the API documentation at http://127.0.0.1:8000/docs
 """
 
 import random
@@ -273,4 +299,12 @@ if __name__ == "__main__":
 
     # Create and run the FastAPI app
     app = create_app()
+    print("\n🚀 Starting FastADK API Server")
+    print("============================")
+    print("Available Agents:")
+    print("- WeatherAssistant (gemini-1.5-pro)")
+    print("- MathHelper (gpt-4)")
+    print("- TextHelper (claude-3-haiku)")
+    print("\nAPI documentation available at http://127.0.0.1:8000/docs")
+    print("============================")
     uvicorn.run(app, host="127.0.0.1", port=8000)
