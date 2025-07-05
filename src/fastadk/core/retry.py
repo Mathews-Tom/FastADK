@@ -7,7 +7,7 @@ temporarily and should be retried with backoff.
 
 import asyncio
 import functools
-import random
+import secrets
 import time
 from collections.abc import Callable, Iterable
 from typing import Any, TypeVar, cast
@@ -110,7 +110,8 @@ def retry(
 
                     # Calculate delay for next attempt
                     if jitter:
-                        jitter_amount = random.random() * delay * 0.2
+                        # Use cryptographically secure random numbers
+                        jitter_amount = secrets.SystemRandom().random() * delay * 0.2
                         current_delay = delay + jitter_amount
                     else:
                         current_delay = delay
@@ -191,7 +192,8 @@ def retry(
 
                     # Calculate delay for next attempt
                     if jitter:
-                        jitter_amount = random.random() * delay * 0.2
+                        # Use cryptographically secure random numbers
+                        jitter_amount = secrets.SystemRandom().random() * delay * 0.2
                         current_delay = delay + jitter_amount
                     else:
                         current_delay = delay
