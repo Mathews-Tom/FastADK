@@ -74,6 +74,7 @@ nav:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quick-start.md
     - Tutorial: getting-started/tutorial.md
+  - System Overview: system-overview.md
   - Concepts:
     - Agents: concepts/agents.md
     - Tools: concepts/tools.md
