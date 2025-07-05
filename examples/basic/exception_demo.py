@@ -28,14 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 @Agent(
-    model="gemini-2.0",
+    model="gemini-1.5-pro",
     description="An agent demonstrating exception handling",
 )
 class ExceptionDemoAgent(BaseAgent):
     """Agent that demonstrates the various exception handling capabilities of FastADK."""
 
     @tool
-    def validate_user(self, email: str, age: int) -> dict[str, str]:
+    def validate_user(self, email: str, age: int) -> Any:
         """
         Validate user information with robust error handling.
 
@@ -61,10 +61,10 @@ class ExceptionDemoAgent(BaseAgent):
                 e,
                 default_message="User validation failed",
                 default_error_code="USER_VALIDATION_ERROR",
-            )
+            ) from e
 
     @tool
-    def fetch_external_data(self, url: str) -> dict[str, Any]:
+    def fetch_external_data(self, url: str) -> Any:
         """
         Fetch data from an external API with proper error handling.
 
@@ -86,7 +86,7 @@ class ExceptionDemoAgent(BaseAgent):
             return result
         except requests.exceptions.RequestException as e:
             # Automatically translate request exceptions
-            raise ExceptionTranslator.translate_exception(e)
+            raise ExceptionTranslator.translate_exception(e) from e
         except Exception as e:
             # Fallback for any other unexpected errors
             raise ToolError(
@@ -96,7 +96,7 @@ class ExceptionDemoAgent(BaseAgent):
             ) from e
 
     @tool
-    def check_configuration(self, config_type: str) -> dict[str, str]:
+    def check_configuration(self, config_type: str) -> Any:
         """
         Check configuration settings with proper error handling.
 
