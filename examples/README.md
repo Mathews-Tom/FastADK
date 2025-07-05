@@ -24,6 +24,7 @@ Each example includes detailed setup instructions in its header comments and the
 Most examples can run with minimal setup, but here are the general requirements:
 
 1. **Required Packages**:
+
    ```bash
    # For basic examples
    uv add httpx requests
@@ -36,10 +37,11 @@ Most examples can run with minimal setup, but here are the general requirements:
    ```
 
 2. **API Keys**:
-   
+
    For examples using language models, you'll need to set up API keys using either:
-   
+
    **Environment variables**:
+
    ```bash
    # For Gemini (used in most examples)
    export GEMINI_API_KEY=your_api_key_here
@@ -48,16 +50,19 @@ Most examples can run with minimal setup, but here are the general requirements:
    export OPENAI_API_KEY=your_api_key_here
    export ANTHROPIC_API_KEY=your_api_key_here
    ```
-   
+
    **Or a .env file** in the project root directory:
-   ```
+
+   ```bash
    GEMINI_API_KEY=your_api_key_here
    OPENAI_API_KEY=your_api_key_here
    ANTHROPIC_API_KEY=your_api_key_here
    ```
+
    (This requires python-dotenv: `uv add python-dotenv`)
 
 3. **Running an Example**:
+
    ```bash
    # Navigate to the FastADK directory
    cd /path/to/FastADK
