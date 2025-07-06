@@ -31,9 +31,21 @@ from .exceptions import (
     ConfigurationError,
     FastADKError,
     MemoryBackendError,
+    OrchestrationError,
     PluginError,
     ToolError,
     ValidationError,
+)
+
+# Multi-agent orchestration
+from .orchestration import OrchestrationResult, OrchestrationStrategy, Orchestrator
+
+# Plugin management system
+from .plugin_manager import (
+    PluginInfo,
+    PluginManager,
+    PluginType,
+    default_plugin_manager,
 )
 
 # Summarization of conversation history
@@ -77,6 +89,15 @@ __all__ = [
     "MostRecentPolicy",
     "SummarizeOlderPolicy",
     "HybridVectorRetrievalPolicy",
+    # Orchestration
+    "Orchestrator",
+    "OrchestrationResult",
+    "OrchestrationStrategy",
+    # Plugin management
+    "PluginManager",
+    "PluginInfo",
+    "PluginType",
+    "default_plugin_manager",
     # Summarization
     "SummarizationService",
     "SummarizationOptions",
@@ -94,6 +115,7 @@ __all__ = [
     "AgentError",
     "ConfigurationError",
     "MemoryBackendError",
+    "OrchestrationError",
     "PluginError",
     "ToolError",
     "ValidationError",

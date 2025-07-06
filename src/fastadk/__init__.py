@@ -30,43 +30,85 @@ Example:
 """
 
 # Import package metadata from __about__.py
-from .__about__ import (
-    __author__,
-    __email__,
-    __license__,
-    __version__,
+from .__about__ import __author__, __email__, __license__, __version__
+
+# Platform adapters
+from .adapters import (
+    DiscordAgentAdapter,
+    SlackAgentAdapter,
+    create_discord_agent,
+    create_slack_agent,
 )
 
-# Core imports
 # API imports
 from .api.router import create_app, registry
-from .core.agent import Agent, BaseAgent, ProviderABC, tool
+
+# Core imports
+from .core.agent import Agent, BaseAgent, tool
 from .core.config import get_settings
 from .core.exceptions import (
     AgentError,
     ConfigurationError,
     FastADKError,
     MemoryBackendError,
+    OrchestrationError,
     PluginError,
     ToolError,
     ValidationError,
 )
+from .core.orchestration import OrchestrationResult, OrchestrationStrategy, Orchestrator
+from .core.plugin_manager import PluginManager, default_plugin_manager
 
 # Memory backends
 from .memory import MemoryBackend, MemoryEntry, get_memory_backend
+
+# Provider interfaces
+from .providers import ModelProviderABC
+
+# Training utilities
+from .training import (
+    DataConverter,
+    DataFormat,
+    FineTuner,
+    FineTuningConfig,
+    FineTuningJob,
+    FineTuningProvider,
+    default_fine_tuner,
+)
 
 # Version information
 __all__ = [
     # Core classes and decorators
     "Agent",
     "BaseAgent",
-    "ProviderABC",
     "tool",
     "get_settings",
     # Memory
     "MemoryBackend",
     "MemoryEntry",
     "get_memory_backend",
+    # Multi-agent orchestration
+    "Orchestrator",
+    "OrchestrationResult",
+    "OrchestrationStrategy",
+    # Platform adapters
+    "SlackAgentAdapter",
+    "DiscordAgentAdapter",
+    "create_slack_agent",
+    "create_discord_agent",
+    # Plugin system
+    "PluginManager",
+    "default_plugin_manager",
+    # Provider interfaces
+    "ModelProviderABC",
+    # Training utilities
+    "DataConverter",
+    "DataFormat",
+    "FineTuner",
+    "FineTuningConfig",
+    "FineTuningJob",
+    "FineTuningProvider",
+    "default_fine_tuner",
     # API
     "create_app",
     "registry",
@@ -75,6 +117,7 @@ __all__ = [
     "ConfigurationError",
     "FastADKError",
     "MemoryBackendError",
+    "OrchestrationError",
     "PluginError",
     "ToolError",
     "ValidationError",
