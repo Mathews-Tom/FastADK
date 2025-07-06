@@ -93,7 +93,8 @@ class BatchUtils:
             return result
 
         logger.info(
-            f"Processing {total_items} items in parallel (max concurrency: {max_concurrency})"
+            "Processing %s items in parallel (max concurrency: %s)",
+            total_items, max_concurrency
         )
 
         # Use a semaphore to limit concurrency
@@ -118,8 +119,11 @@ class BatchUtils:
                             result = await asyncio.to_thread(lambda: process_func(item))
 
                     return item, result, None
+                except asyncio.TimeoutError as timeout_err:
+                    logger.error("Timeout processing item %s", item)
+                    return item, cast(U, None), timeout_err
                 except Exception as e:
-                    logger.error(f"Error processing item {item}: {e}")
+                    logger.error("Error processing item %s: %s", item, e)
                     return item, cast(U, None), e
 
         # Create tasks for all items
@@ -150,8 +154,8 @@ class BatchUtils:
         result.total_time = time.time() - start_time
 
         logger.info(
-            f"Batch processing completed: {result.success_count} successful, "
-            f"{result.failure_count} failed in {result.total_time:.2f}s"
+            "Batch processing completed: %s successful, %s failed in %.2fs",
+            result.success_count, result.failure_count, result.total_time
         )
 
         return result
@@ -192,7 +196,8 @@ class BatchUtils:
         # Calculate number of batches
         batch_count = (total_items + batch_size - 1) // batch_size
         logger.info(
-            f"Processing {total_items} items in {batch_count} batches of size {batch_size}"
+            "Processing %s items in %s batches of size %s",
+            total_items, batch_count, batch_size
         )
 
         # Process each batch
@@ -202,7 +207,8 @@ class BatchUtils:
 
             try:
                 logger.info(
-                    f"Processing batch {batch_num}/{batch_count} with {len(batch)} items"
+                    "Processing batch %s/%s with %s items",
+                    batch_num, batch_count, len(batch)
                 )
 
                 # Handle both async and sync functions
@@ -214,28 +220,34 @@ class BatchUtils:
                     else:
                         batch_results = await process_func(batch)
                 else:
+                    batch_copy = batch.copy()  # Create a copy to avoid lambda binding issues
                     if timeout:
                         batch_results = await asyncio.wait_for(
-                            asyncio.to_thread(lambda: process_func(batch)), timeout
+                            asyncio.to_thread(lambda b=batch_copy: process_func(b)), timeout
                         )
                     else:
                         batch_results = await asyncio.to_thread(
-                            lambda: process_func(batch)
+                            lambda b=batch_copy: process_func(b)
                         )
 
                 # Ensure we got the same number of results as inputs
                 if len(batch_results) != len(batch):
                     logger.warning(
-                        f"Batch {batch_num} returned {len(batch_results)} results "
-                        f"for {len(batch)} inputs"
+                        "Batch %s returned %s results for %s inputs",
+                        batch_num, len(batch_results), len(batch)
                     )
 
                 # Record successful results
                 for item, item_result in zip(batch, batch_results, strict=False):
                     result.successful.append((item, item_result))
 
+            except asyncio.TimeoutError as timeout_err:
+                logger.error("Timeout processing batch %s", batch_num)
+                # Mark all items in the batch as failed
+                for item in batch:
+                    result.failed.append((item, timeout_err))
             except Exception as e:
-                logger.error(f"Error processing batch {batch_num}: {e}")
+                logger.error("Error processing batch %s: %s", batch_num, e)
                 # Mark all items in the batch as failed
                 for item in batch:
                     result.failed.append((item, e))
@@ -248,8 +260,8 @@ class BatchUtils:
         result.total_time = time.time() - start_time
 
         logger.info(
-            f"Batch processing completed: {result.success_count} successful, "
-            f"{result.failure_count} failed in {result.total_time:.2f}s"
+            "Batch processing completed: %s successful, %s failed in %.2fs",
+            result.success_count, result.failure_count, result.total_time
         )
 
         return result
