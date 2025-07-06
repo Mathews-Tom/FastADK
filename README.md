@@ -24,7 +24,24 @@ class WeatherAgent(BaseAgent):
     @tool
     def get_weather(self, city: str) -> dict:
         """Fetch current weather for a city."""
-        return {"city": city, "temp": "22°C", "condition": "sunny"}
+        # This would typically come from an actual weather API
+        return {
+            "city": city,
+            "current": {
+                "temp_c": 22.5,
+                "temp_f": 72.5,
+                "condition": {
+                    "text": "Partly cloudy",
+                    "humidity": 65,
+                    "wind_kph": 15.3
+                }
+            },
+            "forecast": {
+                "tomorrow": {"temp_c": 24.0, "condition": "Sunny"},
+                "day_after": {"temp_c": 20.0, "condition": "Light rain"}
+            },
+            "last_updated": "2025-07-06T10:30:00Z"
+        }
 
 # Run the agent
 if __name__ == "__main__":
