@@ -52,6 +52,8 @@ dependencies = [
     "asyncio-redis>=0.16.0",
     "mkdocs-material>=9.6.15",
     "mkdocstrings-python>=1.16.12",
+    "prometheus-client>=0.17.0",
+    "tiktoken>=0.5.0",
 ]
 dynamic = ["version"]
 
@@ -111,6 +113,7 @@ observability = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-instrumentation-fastapi>=0.41b0",
     "prometheus-client>=0.17.0",
+    "tiktoken>=0.5.0",
 ]
 
 # All optional dependencies
