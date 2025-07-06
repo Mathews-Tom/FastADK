@@ -865,6 +865,65 @@ class Workflow(Generic[T, U]):
         flow = SequentialFlow(steps=list(steps))
         return cls(root_step=flow, name=name)
 
+    async def run_parallel(
+        self, coroutines: list[Any], timeout: float | None = None
+    ) -> list[Any]:
+        """
+        Execute a list of coroutines in parallel.
+
+        This method is useful for running multiple operations concurrently
+        without creating a full workflow step for each one.
+
+        Args:
+            coroutines: List of coroutine objects to execute
+            timeout: Optional timeout in seconds for all coroutines
+
+        Returns:
+            List of results from all coroutines
+
+        Raises:
+            asyncio.TimeoutError: If the execution times out
+            Exception: If any coroutine raises an exception
+        """
+        if not coroutines:
+            return []
+
+        logger.info(
+            f"Running {len(coroutines)} coroutines in parallel for workflow '{self.name}'"
+        )
+
+        # Create tasks for all coroutines
+        tasks = [asyncio.create_task(coro) for coro in coroutines]
+
+        try:
+            # Wait for all tasks with optional timeout
+            if timeout:
+                results = await asyncio.wait_for(
+                    asyncio.gather(*tasks), timeout=timeout
+                )
+            else:
+                results = await asyncio.gather(*tasks)
+
+            return results
+        except asyncio.TimeoutError:
+            # Cancel all tasks if timeout
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+
+            logger.warning(
+                f"Parallel execution in workflow '{self.name}' timed out after {timeout}s"
+            )
+            raise
+        except Exception as e:
+            # Cancel remaining tasks if one fails
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+
+            logger.error(f"Error in parallel execution: {str(e)}")
+            raise
+
     @classmethod
     def parallel(
         cls,

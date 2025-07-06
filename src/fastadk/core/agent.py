@@ -340,14 +340,21 @@ class BaseAgent:
     async def _generate_response(self, user_input: str) -> str:
         """Generate a response from the model."""
         try:
+            # Check cache for this prompt if caching is enabled
+            cache_response = await self._check_cache(user_input)
+            if cache_response:
+                logger.info("Using cached response for input")
+                self.last_response = cache_response
+                return cache_response
+
             # Handle different providers
             if self._provider == "gemini":
-                return await self._generate_gemini_response(user_input)
-            if self._provider == "openai":
-                return await self._generate_openai_response(user_input)
-            if self._provider == "anthropic":
-                return await self._generate_anthropic_response(user_input)
-            if self._provider == "simulated":
+                response_text = await self._generate_gemini_response(user_input)
+            elif self._provider == "openai":
+                response_text = await self._generate_openai_response(user_input)
+            elif self._provider == "anthropic":
+                response_text = await self._generate_anthropic_response(user_input)
+            elif self._provider == "simulated":
                 # For simulated/mock model
                 if hasattr(self.model, "generate_content"):
                     response = await asyncio.to_thread(
@@ -379,14 +386,81 @@ class BaseAgent:
                         self.settings.model, "custom_price_per_1k", {}
                     )
                     track_token_usage(usage, self.token_budget, custom_price)
+            else:
+                # If no provider matched
+                raise AgentError(f"Unsupported provider: {self._provider}")
 
-                return response_text
+            # Cache the response
+            await self._cache_response(user_input, response_text)
 
-            # If no provider matched
-            raise AgentError(f"Unsupported provider: {self._provider}")
+            # Store the response for potential tool skipping logic
+            self.last_response = response_text
+            return response_text
         except Exception as e:
             logger.error("Error generating response: %s", e, exc_info=True)
             raise AgentError(f"Failed to generate response: {e}") from e
+
+    async def _check_cache(self, user_input: str) -> str | None:
+        """
+        Check if we have a cached response for this input.
+        
+        Args:
+            user_input: The user's input message
+            
+        Returns:
+            Cached response if available, None otherwise
+        """
+        try:
+            from .cache import default_cache_manager
+
+            # Only use cache if enabled for this model
+            cache_ttl = getattr(self.settings.model, "response_cache_ttl", 0)
+            if cache_ttl <= 0:
+                return None
+
+            # Create a cache key from the model, provider, and input
+            cache_key = {
+                "model": self._model_name,
+                "provider": self._provider,
+                "input": user_input,
+            }
+
+            # Try to get from cache
+            cached_response = await default_cache_manager.get(cache_key)
+            return cached_response
+        except Exception as e:
+            # Log but don't fail if cache check fails
+            logger.warning(f"Error checking cache: {e}")
+            return None
+
+    async def _cache_response(self, user_input: str, response: str) -> None:
+        """
+        Cache a response for future use.
+        
+        Args:
+            user_input: The user's input message
+            response: The model's response
+        """
+        try:
+            from .cache import default_cache_manager
+
+            # Only cache if enabled for this model
+            cache_ttl = getattr(self.settings.model, "response_cache_ttl", 0)
+            if cache_ttl <= 0:
+                return
+
+            # Create a cache key from the model, provider, and input
+            cache_key = {
+                "model": self._model_name,
+                "provider": self._provider,
+                "input": user_input,
+            }
+
+            # Cache the response
+            await default_cache_manager.set(cache_key, response, ttl=cache_ttl)
+        except Exception as e:
+            # Log but don't fail if caching fails
+            logger.warning(f"Error caching response: {e}")
 
     async def _generate_gemini_response(self, user_input: str) -> str:
         """Generate a response using the Gemini model."""
@@ -489,16 +563,20 @@ class BaseAgent:
         # Fallback for mock model
         return f"Anthropic mock response to: {user_input}"
 
-    async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
+    async def execute_tool(
+        self, tool_name: str, skip_if_response_contains: list[str] | None = None, **kwargs: Any
+    ) -> Any:
         """
         Execute a tool by name with the given arguments.
 
         Args:
             tool_name: The name of the tool to execute
+            skip_if_response_contains: List of strings that, if found in the LLM response,
+                                      indicate the tool call can be skipped
             **kwargs: Arguments to pass to the tool
 
         Returns:
-            The result of the tool execution
+            The result of the tool execution or a message indicating the tool was skipped
         """
         if tool_name not in self.tools:
             raise ToolError(f"Tool '{tool_name}' not found")
@@ -507,18 +585,58 @@ class BaseAgent:
         if not tool.enabled:
             raise ToolError(f"Tool '{tool_name}' is disabled")
 
+        # Check if we should skip the tool execution based on LLM response
+        if skip_if_response_contains and hasattr(self, "last_response"):
+            last_response = getattr(self, "last_response", "")
+            for phrase in skip_if_response_contains:
+                if phrase.lower() in last_response.lower():
+                    logger.info(
+                        "Skipping tool '%s' execution because response already contains relevant info",
+                        tool_name,
+                    )
+                    return {
+                        "skipped": True,
+                        "reason": f"Response already contains '{phrase}'",
+                        "tool_name": tool_name,
+                    }
+
+        # If not skipped, proceed with execution
         self.tools_used.append(tool_name)
         logger.info("Executing tool '%s' with args: %s", tool_name, kwargs)
+
+        # Check if tool function is a coroutine
+        is_coroutine = asyncio.iscoroutinefunction(tool.function)
 
         # Execute with timeout and retry logic
         remaining_retries = tool.retries
         while True:
             try:
                 # Execute tool with timeout
-                result = await asyncio.wait_for(
-                    asyncio.to_thread(lambda: tool.function(**kwargs)),
-                    timeout=tool.timeout,
-                )
+                if is_coroutine:
+                    # If it's already a coroutine, just await it
+                    result = await asyncio.wait_for(
+                        tool.function(**kwargs),
+                        timeout=tool.timeout,
+                    )
+                else:
+                    # Run sync function in a thread pool
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(lambda: tool.function(**kwargs)),
+                        timeout=tool.timeout,
+                    )
+
+                # Try to cache the result if caching is enabled
+                from .cache import default_cache_manager
+
+                cache_ttl = getattr(tool, "cache_ttl", 0)
+                if cache_ttl > 0:
+                    # Create a cache key from the tool name and arguments
+                    cache_key = {
+                        "tool": tool_name,
+                        "args": kwargs,
+                    }
+                    await default_cache_manager.set(cache_key, result, ttl=cache_ttl)
+
                 return result
 
             except asyncio.TimeoutError:
