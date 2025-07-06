@@ -5,6 +5,12 @@ Core FastADK module containing base classes, decorators, and fundamental abstrac
 # Agent-related components (base classes, decorators)
 from .agent import Agent, BaseAgent, tool
 
+# Batch processing utilities
+from .batch import BatchResult, BatchUtils
+
+# Cache management
+from .cache import CacheManager, InMemoryCache, RedisCache, cached
+
 # Configuration management
 from .config import FastADKSettings, get_settings, reload_settings
 
@@ -33,11 +39,30 @@ from .exceptions import (
 # Summarization of conversation history
 from .summarization import LLMSummarizer, SummarizationOptions, SummarizationService
 
+# Workflow orchestration
+from .workflow import (
+    Workflow,
+    WorkflowResult,
+    WorkflowStep,
+    conditional,
+    merge,
+    step,
+    transform,
+)
+
 __all__ = [
     # Agent components
     "Agent",
     "BaseAgent",
     "tool",
+    # Batch processing
+    "BatchUtils",
+    "BatchResult",
+    # Cache management
+    "CacheManager",
+    "cached",
+    "InMemoryCache",
+    "RedisCache",
     # Configuration
     "FastADKSettings",
     "get_settings",
@@ -56,6 +81,14 @@ __all__ = [
     "SummarizationService",
     "SummarizationOptions",
     "LLMSummarizer",
+    # Workflow
+    "Workflow",
+    "WorkflowStep",
+    "WorkflowResult",
+    "step",
+    "transform",
+    "merge",
+    "conditional",
     # Exceptions
     "FastADKError",
     "AgentError",
