@@ -18,6 +18,7 @@ from collections.abc import Callable
 from typing import Any, ClassVar, Dict, Optional, TypeVar
 
 import google.generativeai as genai
+import litellm
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -161,6 +162,7 @@ class BaseAgent:
     _model_name: ClassVar[str] = "gemini-1.5-pro"
     _description: ClassVar[str] = "A FastADK agent"
     _provider: ClassVar[str] = "gemini"
+    _system_message: ClassVar[str | None] = None
 
     def __init__(self) -> None:
         """Initialize the agent with configuration settings."""
@@ -169,6 +171,9 @@ class BaseAgent:
         self.tools_used: list[str] = []
         self.session_id: str | None = None
         self.memory_data: dict[str, Any] = {}
+        self.litellm_mode: str = "sdk"
+        self.litellm_endpoint: str = "http://localhost:8000"
+        self.last_response: str = ""
 
         # Initialize token budget if tracking is enabled
         self.token_budget: Optional[TokenBudget] = None
@@ -234,6 +239,8 @@ class BaseAgent:
                 self._initialize_openai_model()
             elif self._provider == "anthropic":
                 self._initialize_anthropic_model()
+            elif self._provider == "litellm":
+                self._initialize_litellm_model()
             elif self._provider == "simulated":
                 # Use mock model for simulation and testing
                 from fastadk.testing.utils import MockModel
@@ -244,7 +251,7 @@ class BaseAgent:
                 # If provider is unknown, try to use a mock model
                 raise ConfigurationError(
                     f"Unsupported provider: {self._provider}. "
-                    "Supported providers: 'gemini', 'openai', 'anthropic', 'simulated'"
+                    "Supported providers: 'gemini', 'openai', 'anthropic', 'litellm', 'simulated'"
                 )
         except Exception as e:
             raise ConfigurationError(f"Failed to initialize model: {e}") from e
@@ -354,6 +361,8 @@ class BaseAgent:
                 response_text = await self._generate_openai_response(user_input)
             elif self._provider == "anthropic":
                 response_text = await self._generate_anthropic_response(user_input)
+            elif self._provider == "litellm":
+                response_text = await self._generate_litellm_response(user_input)
             elif self._provider == "simulated":
                 # For simulated/mock model
                 if hasattr(self.model, "generate_content"):
@@ -403,10 +412,10 @@ class BaseAgent:
     async def _check_cache(self, user_input: str) -> str | None:
         """
         Check if we have a cached response for this input.
-        
+
         Args:
             user_input: The user's input message
-            
+
         Returns:
             Cached response if available, None otherwise
         """
@@ -436,7 +445,7 @@ class BaseAgent:
     async def _cache_response(self, user_input: str, response: str) -> None:
         """
         Cache a response for future use.
-        
+
         Args:
             user_input: The user's input message
             response: The model's response
@@ -563,8 +572,95 @@ class BaseAgent:
         # Fallback for mock model
         return f"Anthropic mock response to: {user_input}"
 
+    def _initialize_litellm_model(self) -> None:
+        """Initialize LiteLLM model."""
+        try:
+            # Get API key and configuration
+            api_key_var = getattr(
+                self.settings.model, "api_key_env_var", "LITELLM_API_KEY"
+            )
+            api_key = os.environ.get(api_key_var) or os.environ.get("LITELLM_API_KEY")
+
+            # Get mode configuration (sdk or proxy)
+            mode = getattr(self.settings.model, "litellm_mode", "sdk")
+
+            if mode == "proxy":
+                # Configure for proxy mode
+                endpoint = getattr(
+                    self.settings.model, "litellm_endpoint", "http://localhost:8000"
+                )
+                litellm.api_base = endpoint
+
+                if api_key:
+                    litellm.api_key = api_key
+
+                # Store mode and endpoint for later use
+                self.litellm_mode = "proxy"
+                self.litellm_endpoint = endpoint
+                logger.info(
+                    "Initialized LiteLLM in proxy mode with endpoint %s", endpoint
+                )
+            else:
+                # SDK mode is the default
+                if api_key:
+                    litellm.api_key = api_key
+
+                self.litellm_mode = "sdk"
+                logger.info("Initialized LiteLLM in SDK mode")
+
+            # Store LiteLLM client instance
+            self.model = litellm  # type: ignore
+        except ImportError as exc:
+            raise ImportError(
+                "LiteLLM package not installed. Install with: uv add litellm"
+            ) from exc
+
+    async def _generate_litellm_response(self, user_input: str) -> str:
+        """Generate a response using the LiteLLM client."""
+        # Create the messages array for LiteLLM (similar to OpenAI format)
+        messages = [{"role": "user", "content": user_input}]
+
+        # Add system message if available
+        system_message = getattr(self, "_system_message", None)
+        if system_message:
+            messages.insert(0, {"role": "system", "content": system_message})
+
+        try:
+            # Call LiteLLM completion
+            response = await asyncio.to_thread(
+                lambda: litellm.completion(
+                    model=self._model_name,
+                    messages=messages,
+                    max_tokens=1000,
+                )
+            )
+
+            # Extract the response text
+            response_text = response.choices[0].message.content
+
+            # Track token usage if enabled
+            if getattr(self.settings.model, "track_tokens", False):
+                usage = extract_token_usage_from_response(
+                    response, "litellm", self._model_name
+                )
+                if usage:
+                    # Get custom price if available
+                    custom_price = getattr(
+                        self.settings.model, "custom_price_per_1k", {}
+                    )
+                    track_token_usage(usage, self.token_budget, custom_price)
+
+            return response_text or ""
+        except Exception as e:  # noqa: BLE001
+            logger.error("Error generating response with LiteLLM: %s", str(e))
+            # Fallback for error cases
+            return f"Error generating response: {str(e)}"
+
     async def execute_tool(
-        self, tool_name: str, skip_if_response_contains: list[str] | None = None, **kwargs: Any
+        self,
+        tool_name: str,
+        skip_if_response_contains: list[str] | None = None,
+        **kwargs: Any,
     ) -> Any:
         """
         Execute a tool by name with the given arguments.
@@ -572,7 +668,7 @@ class BaseAgent:
         Args:
             tool_name: The name of the tool to execute
             skip_if_response_contains: List of strings that, if found in the LLM response,
-                                      indicate the tool call can be skipped
+                                        indicate the tool call can be skipped
             **kwargs: Arguments to pass to the tool
 
         Returns:

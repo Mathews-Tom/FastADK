@@ -328,6 +328,25 @@ class TestTokenUtilities:
         assert usage.provider == "gemini"
         assert usage.model == "gemini-1.5-pro"
 
+    def test_extract_litellm_usage(self):
+        """Test extracting token usage from LiteLLM response."""
+        # Mock LiteLLM response (uses OpenAI-compatible format)
+        mock_response = MagicMock()
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.usage.total_tokens = 150
+
+        # Extract usage
+        usage = extract_token_usage_from_response(mock_response, "litellm", "gpt-4")
+
+        # Verify usage
+        assert usage is not None
+        assert usage.prompt_tokens == 100
+        assert usage.completion_tokens == 50
+        assert usage.total_tokens == 150
+        assert usage.provider == "litellm"
+        assert usage.model == "gpt-4"
+
     def test_extract_fallback_for_unknown_provider(self):
         """Test fallback when provider is unknown."""
         # Mock response

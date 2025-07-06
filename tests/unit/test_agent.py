@@ -2,6 +2,9 @@
 Tests for FastADK agent functionality.
 """
 
+import os
+from unittest.mock import patch
+
 import pytest
 
 from fastadk import Agent, BaseAgent, tool
@@ -109,6 +112,51 @@ class TestBaseAgent:
         # Test missing tool
         with pytest.raises(ToolError):
             await agent.execute_tool("non_existent_tool")
+
+
+class TestLiteLLMProvider:
+    """Tests for the LiteLLM provider."""
+
+    @pytest.mark.asyncio
+    @patch("litellm.completion")
+    async def test_litellm_provider(self, mock_completion):
+        """Test the LiteLLM provider."""
+        # Set up mock response
+        mock_completion.return_value.choices = [
+            type(
+                "Choice",
+                (),
+                {"message": type("Message", (), {"content": "LiteLLM test response"})},
+            )
+        ]
+        mock_completion.return_value.usage = type(
+            "Usage",
+            (),
+            {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        )
+
+        # Create agent with LiteLLM provider
+        @Agent(model="gpt-3.5-turbo", provider="litellm")
+        class LiteLLMAgent(BaseAgent):
+            """A test agent using LiteLLM provider."""
+
+            pass
+
+        # Set up environment variable
+        with patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}):
+            agent = LiteLLMAgent()
+
+            # Call the agent
+            response = await agent.run("Test message")
+
+            # Verify response
+            assert response == "LiteLLM test response"
+
+            # Verify LiteLLM was called with correct parameters
+            mock_completion.assert_called_once()
+            args, kwargs = mock_completion.call_args
+            assert kwargs["model"] == "gpt-3.5-turbo"
+            assert kwargs["messages"][0]["content"] == "Test message"
 
 
 class TestAgentScenarios(AgentTest):

@@ -68,6 +68,7 @@ class BaseAgent:
     _model_name: ClassVar[str]
     _description: ClassVar[str]
     _provider: ClassVar[str]
+    _system_message: ClassVar[str | None]
 
     # Instance variables
     settings: Any
@@ -76,6 +77,9 @@ class BaseAgent:
     session_id: str | None
     memory_data: dict[str, Any]
     model: Any
+    litellm_mode: str
+    litellm_endpoint: str
+    last_response: str
 
     def __init__(self) -> None: ...
     def _initialize_tools(self) -> None: ...
@@ -83,6 +87,7 @@ class BaseAgent:
     def _initialize_gemini_model(self) -> None: ...
     def _initialize_openai_model(self) -> None: ...
     def _initialize_anthropic_model(self) -> None: ...
+    def _initialize_litellm_model(self) -> None: ...
     async def run(self, user_input: str) -> str:
         """Run the agent with the given user input.
 
@@ -135,6 +140,17 @@ class BaseAgent:
 
         Returns:
             The generated response from Anthropic
+        """
+        ...
+
+    async def _generate_litellm_response(self, user_input: str) -> str:
+        """Generate a response using the LiteLLM client.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            The generated response from LiteLLM
         """
         ...
 
