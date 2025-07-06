@@ -119,6 +119,10 @@ class WorkflowError(FastADKError):
     """Raised when there are errors in workflow execution."""
 
 
+class OrchestrationError(FastADKError):
+    """Raised when there are errors in multi-agent orchestration."""
+
+
 class ExceptionTracker:
     """
     Tracks exceptions for monitoring and analysis.
