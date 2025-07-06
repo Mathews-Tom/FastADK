@@ -10,6 +10,14 @@ model:
   api_key_env_var: GEMINI_API_KEY
   timeout_seconds: 30
   max_retries: 3
+  
+  # LiteLLM configuration (commented out by default)
+  # To use LiteLLM, uncomment and adjust these settings:
+  # provider: litellm
+  # model_name: gpt-3.5-turbo  # Model name to use with LiteLLM
+  # api_key_env_var: LITELLM_API_KEY
+  # litellm_mode: sdk  # sdk or proxy
+  # litellm_endpoint: http://localhost:8000  # Only needed for proxy mode
 
 # Memory backend configuration
 memory:
