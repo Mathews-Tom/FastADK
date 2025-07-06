@@ -7,11 +7,9 @@ in FastADK to monitor token usage and costs.
 
 import asyncio
 import logging
-import os
-from typing import Any, Dict
 
 from fastadk.core.agent import Agent, BaseAgent, tool
-from fastadk.tokens import count_tokens, estimate_tokens_and_cost
+from fastadk.tokens import estimate_tokens_and_cost
 
 # Configure logging to see token usage
 logging.basicConfig(
@@ -22,13 +20,13 @@ logging.basicConfig(
 @Agent(
     model="gpt-3.5-turbo",
     description="An agent that demonstrates token tracking",
-    provider="openai",
+    provider="simulated",  # Using simulated provider for testing without requiring API keys
 )
 class TokenTrackingAgent(BaseAgent):
     """A simple agent demonstrating token tracking features."""
 
     @tool
-    def get_token_count(self, text: str) -> Dict[str, Any]:
+    def get_token_count(self, text: str) -> dict:  # Use built-in dict type instead
         """
         Count tokens in a text string using model tokenizers.
 
@@ -53,7 +51,7 @@ class TokenTrackingAgent(BaseAgent):
         return results
 
     @tool
-    def get_token_usage_stats(self) -> Dict[str, Any]:
+    def get_token_usage_stats(self) -> dict:  # Use built-in dict type instead
         """
         Get the current token usage statistics for this agent session.
 
@@ -91,26 +89,11 @@ async def main() -> None:
     print(f"Session tokens used: {stats.get('session_tokens_used', 'Unknown')}")
     print(f"Session cost: ${stats.get('session_cost', 'Unknown')}")
 
-    # Use the token counting tool
+    # Use the token counting tool with a shorter text
     print("\n=== Token Counting Tool Demo ===")
-    long_text = """
-    Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to 
-    natural intelligence displayed by animals including humans. Leading AI textbooks define 
-    the field as the study of "intelligent agents": any system that perceives its environment 
-    and takes actions that maximize its chance of achieving its goals. Some popular accounts 
-    use the term "artificial intelligence" to describe machines that mimic "cognitive" functions 
-    that humans associate with the human mind, such as "learning" and "problem solving".
+    short_text = "This is a short text to demonstrate token counting functionality."
 
-    The field was founded on the assumption that human intelligence "can be so precisely 
-    described that a machine can be made to simulate it". This raised philosophical arguments 
-    about the mind and the ethical consequences of creating artificial beings endowed with 
-    human-like intelligence; these issues have previously been explored by myth, fiction, and 
-    philosophy since antiquity. Computer scientists and philosophers have since suggested that 
-    AI may become an existential risk to humanity if its development is not steered towards 
-    outcomes that do not negatively impact human values.
-    """
-
-    token_counts = await agent.execute_tool("get_token_count", text=long_text)
+    token_counts = await agent.execute_tool("get_token_count", text=short_text)
     print("Token counts for different models:")
     for model, result in token_counts.items():
         print(

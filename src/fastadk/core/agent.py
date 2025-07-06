@@ -21,7 +21,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from ..tokens.models import TokenBudget, TokenUsage
+from ..tokens.models import TokenBudget
 from ..tokens.utils import extract_token_usage_from_response, track_token_usage
 from .config import get_settings
 from .exceptions import (
@@ -172,13 +172,23 @@ class BaseAgent:
 
         # Initialize token budget if tracking is enabled
         self.token_budget: Optional[TokenBudget] = None
-        if self.settings.model.track_tokens:
+        # Access actual attributes on the settings objects, not the Field definitions
+        if getattr(self.settings.model, "track_tokens", False):
+            token_budget_settings = self.settings.token_budget
             self.token_budget = TokenBudget(
-                max_tokens_per_request=self.settings.token_budget.max_tokens_per_request,
-                max_tokens_per_session=self.settings.token_budget.max_tokens_per_session,
-                max_cost_per_request=self.settings.token_budget.max_cost_per_request,
-                max_cost_per_session=self.settings.token_budget.max_cost_per_session,
-                warn_at_percent=self.settings.token_budget.warn_at_percent,
+                max_tokens_per_request=getattr(
+                    token_budget_settings, "max_tokens_per_request", None
+                ),
+                max_tokens_per_session=getattr(
+                    token_budget_settings, "max_tokens_per_session", None
+                ),
+                max_cost_per_request=getattr(
+                    token_budget_settings, "max_cost_per_request", None
+                ),
+                max_cost_per_session=getattr(
+                    token_budget_settings, "max_cost_per_session", None
+                ),
+                warn_at_percent=getattr(token_budget_settings, "warn_at_percent", 80.0),
             )
 
         # Initialize tools from class metadata
@@ -343,8 +353,34 @@ class BaseAgent:
                     response = await asyncio.to_thread(
                         lambda: self.model.generate_content(user_input).text
                     )
-                    return str(response)
-                return f"Simulated response to: {user_input}"
+                    response_text = str(response)
+                else:
+                    response_text = f"Simulated response to: {user_input}"
+
+                # Generate simulated token usage for demonstration purposes
+                if getattr(self.settings.model, "track_tokens", False):
+                    # Create simulated token usage based on input length
+                    prompt_tokens = len(user_input.split())
+                    completion_tokens = len(response_text.split())
+
+                    # Create a simulated response object with usage data
+                    from ..tokens.models import TokenUsage
+
+                    usage = TokenUsage(
+                        prompt_tokens=prompt_tokens
+                        * 2,  # Simulate token encoding (more tokens than words)
+                        completion_tokens=completion_tokens * 2,
+                        model=self._model_name,
+                        provider="simulated",
+                    )
+
+                    # Get custom price if available
+                    custom_price = getattr(
+                        self.settings.model, "custom_price_per_1k", {}
+                    )
+                    track_token_usage(usage, self.token_budget, custom_price)
+
+                return response_text
 
             # If no provider matched
             raise AgentError(f"Unsupported provider: {self._provider}")
@@ -362,14 +398,14 @@ class BaseAgent:
         response_text = response.text if hasattr(response, "text") else str(response)
 
         # Track token usage if enabled
-        if self.settings.model.track_tokens:
+        if getattr(self.settings.model, "track_tokens", False):
             usage = extract_token_usage_from_response(
                 response, "gemini", self._model_name
             )
             if usage:
-                track_token_usage(
-                    usage, self.token_budget, self.settings.model.custom_price_per_1k
-                )
+                # Get custom price if available
+                custom_price = getattr(self.settings.model, "custom_price_per_1k", {})
+                track_token_usage(usage, self.token_budget, custom_price)
 
         return response_text
 
@@ -386,15 +422,19 @@ class BaseAgent:
             )
 
             # Track token usage if enabled
-            if self.settings.model.track_tokens:
+            if getattr(self.settings.model, "track_tokens", False):
                 usage = extract_token_usage_from_response(
                     response, "openai", self._model_name
                 )
                 if usage:
+                    # Get custom price if available
+                    custom_price = getattr(
+                        self.settings.model, "custom_price_per_1k", {}
+                    )
                     track_token_usage(
                         usage,
                         self.token_budget,
-                        self.settings.model.custom_price_per_1k,
+                        custom_price,
                     )
 
                     # Check if we exceeded budget limits
@@ -406,8 +446,9 @@ class BaseAgent:
                         > self.token_budget.max_tokens_per_request
                     ):
                         logger.warning(
-                            f"Token limit exceeded: {usage.total_tokens} > "
-                            f"{self.token_budget.max_tokens_per_request}"
+                            "Token limit exceeded: %d > %d",
+                            usage.total_tokens,
+                            self.token_budget.max_tokens_per_request,
                         )
 
             return response.choices[0].message.content or ""  # type: ignore
@@ -428,15 +469,19 @@ class BaseAgent:
             )
 
             # Track token usage if enabled
-            if self.settings.model.track_tokens:
+            if getattr(self.settings.model, "track_tokens", False):
                 usage = extract_token_usage_from_response(
                     response, "anthropic", self._model_name
                 )
                 if usage:
+                    # Get custom price if available
+                    custom_price = getattr(
+                        self.settings.model, "custom_price_per_1k", {}
+                    )
                     track_token_usage(
                         usage,
                         self.token_budget,
-                        self.settings.model.custom_price_per_1k,
+                        custom_price,
                     )
 
             return response.content[0].text  # type: ignore
@@ -500,7 +545,7 @@ class BaseAgent:
 
             except Exception as e:
                 logger.error(
-                    "Error executing tool '%s': %s", tool_name, e, exc_info=True
+                    "Error executing tool '%s': %s", tool_name, str(e), exc_info=True
                 )
                 if remaining_retries > 0:
                     remaining_retries -= 1
@@ -524,15 +569,12 @@ class BaseAgent:
 
     def on_start(self) -> None:
         """Hook called when the agent starts processing a request."""
-        pass
 
     def on_finish(self, result: str) -> None:
         """Hook called when the agent finishes processing a request."""
-        pass
 
     def on_error(self, error: Exception) -> None:
         """Hook called when the agent encounters an error."""
-        pass
 
     def reset_token_budget(self) -> None:
         """Reset the token budget session counters."""
@@ -589,7 +631,10 @@ def Agent(
             setattr(cls, f"_{key}", value)
 
         # Register the agent class
-        register_agent(cls)
+        if issubclass(
+            cls, BaseAgent
+        ):  # Make sure we only register BaseAgent subclasses
+            register_agent(cls)  # type: ignore
 
         return cls
 

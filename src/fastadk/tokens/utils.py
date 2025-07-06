@@ -55,7 +55,9 @@ def extract_token_usage_from_response(
         elif provider.lower() == "gemini":
             return _extract_gemini_usage(response, model)
         else:
-            logger.warning("Token extraction not implemented for provider: %s", provider)
+            logger.warning(
+                "Token extraction not implemented for provider: %s", provider
+            )
             return None
     except Exception as e:  # noqa: BLE001
         logger.warning("Failed to extract token usage: %s", str(e))
