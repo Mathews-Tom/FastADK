@@ -41,7 +41,7 @@ def extract_token_usage_from_response(
 
     Args:
         response: The response object from an LLM provider
-        provider: The provider name (openai, anthropic, gemini, etc.)
+        provider: The provider name (openai, anthropic, gemini, litellm, etc.)
         model: The model name
 
     Returns:
@@ -54,6 +54,8 @@ def extract_token_usage_from_response(
             return _extract_anthropic_usage(response, model)
         elif provider.lower() == "gemini":
             return _extract_gemini_usage(response, model)
+        elif provider.lower() == "litellm":
+            return _extract_litellm_usage(response, model)
         else:
             logger.warning(
                 "Token extraction not implemented for provider: %s", provider
@@ -152,6 +154,39 @@ def _extract_gemini_usage(response: Any, model: str) -> Optional[TokenUsage]:
         return None
     except Exception as e:  # noqa: BLE001
         logger.warning("Failed to extract Gemini token usage: %s", str(e))
+        return None
+
+
+def _extract_litellm_usage(response: Any, model: str) -> Optional[TokenUsage]:
+    """Extract token usage from LiteLLM API response."""
+    try:
+        # LiteLLM response format is OpenAI-compatible
+        # The usage should be in the same format as OpenAI
+        usage = getattr(response, "usage", None)
+
+        if usage:
+            return TokenUsage(
+                prompt_tokens=getattr(usage, "prompt_tokens", 0),
+                completion_tokens=getattr(usage, "completion_tokens", 0),
+                total_tokens=getattr(usage, "total_tokens", 0),
+                model=model,
+                provider="litellm",
+            )
+
+        # Try to handle dictionary response format
+        if isinstance(response, dict) and "usage" in response:
+            usage = response["usage"]
+            return TokenUsage(
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model=model,
+                provider="litellm",
+            )
+
+        return None
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to extract LiteLLM token usage: %s", str(e))
         return None
 
 
