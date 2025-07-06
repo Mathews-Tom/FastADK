@@ -2,7 +2,7 @@
 Memory backends for FastADK.
 
 This module provides the base memory interface and implementations for
-different memory backends (in-memory, Redis, etc.)
+different memory backends (in-memory, Redis, vector, etc.)
 """
 
 from typing import Optional
@@ -19,7 +19,29 @@ try:
 except ImportError:
     RedisBackend = None  # type: ignore
 
-__all__ = ["MemoryBackend", "MemoryEntry", "InMemoryBackend", "get_memory_backend"]
+try:
+    from .vector import (
+        InMemoryVectorStore,
+        MockEmbeddingProvider,
+        VectorEntry,
+        VectorMemoryBackend,
+    )
+except ImportError:
+    VectorMemoryBackend = None  # type: ignore
+    VectorEntry = None  # type: ignore
+    InMemoryVectorStore = None  # type: ignore
+    MockEmbeddingProvider = None  # type: ignore
+
+__all__ = [
+    "MemoryBackend",
+    "MemoryEntry",
+    "InMemoryBackend",
+    "VectorMemoryBackend",
+    "VectorEntry",
+    "InMemoryVectorStore",
+    "MockEmbeddingProvider",
+    "get_memory_backend",
+]
 
 
 def get_memory_backend(
@@ -64,6 +86,64 @@ def get_memory_backend(
             redis_options.setdefault("default_ttl", settings.memory.ttl_seconds)
 
         return RedisBackend(**redis_options)
+
+    elif memory_type == MemoryBackendType.VECTOR:
+        if VectorMemoryBackend is None:
+            raise ImportError(
+                "Vector memory backend requires extra dependencies. "
+                "Install them with: uv add fastadk[vector]"
+            )
+
+        # For development/testing, use the mock embedding provider
+        # In production, users would configure a real embedding provider
+        vector_options = settings.memory.options.copy()
+        use_mock = vector_options.pop("use_mock_embeddings", True)
+
+        if use_mock:
+            # Use the mock provider for testing
+            vector_store = InMemoryVectorStore()
+            embedding_provider = MockEmbeddingProvider()
+        else:
+            # Import real providers if specified in options
+            embedding_provider_path = vector_options.pop("embedding_provider", None)
+            vector_store_path = vector_options.pop("vector_store", None)
+
+            if embedding_provider_path and vector_store_path:
+                # Dynamic import of user-provided implementations
+                import importlib
+
+                try:
+                    module_path, class_name = embedding_provider_path.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    EmbeddingProviderClass = getattr(module, class_name)
+                    embedding_provider = EmbeddingProviderClass(
+                        **vector_options.get("embedding_options", {})
+                    )
+
+                    module_path, class_name = vector_store_path.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    VectorStoreClass = getattr(module, class_name)
+                    vector_store = VectorStoreClass(
+                        **vector_options.get("store_options", {})
+                    )
+                except (ImportError, AttributeError) as e:
+                    raise ImportError(f"Failed to import vector components: {str(e)}") from e
+            else:
+                # Fall back to mock provider
+                vector_store = InMemoryVectorStore()
+                embedding_provider = MockEmbeddingProvider()
+
+        # Use another memory backend for storage if specified
+        storage_backend = None
+        storage_type = vector_options.pop("storage_backend_type", None)
+        if storage_type:
+            storage_backend = get_memory_backend(storage_type)
+
+        return VectorMemoryBackend(
+            vector_store=vector_store,
+            embedding_provider=embedding_provider,
+            storage_backend=storage_backend,
+        )
 
     elif memory_type == MemoryBackendType.FIRESTORE:
         try:

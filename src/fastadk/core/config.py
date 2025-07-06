@@ -38,6 +38,7 @@ class MemoryBackendType(str, Enum):
     IN_MEMORY = "inmemory"
     REDIS = "redis"
     FIRESTORE = "firestore"
+    VECTOR = "vector"
     CUSTOM = "custom"
 
 
@@ -103,6 +104,48 @@ class ModelConfig(BaseModel):
         return v
 
 
+class ContextPolicyType(str, Enum):
+    """Context policy types for managing conversation history."""
+
+    MOST_RECENT = "most_recent"
+    SUMMARIZE_OLDER = "summarize_older"
+    HYBRID_VECTOR = "hybrid_vector"
+    CUSTOM = "custom"
+
+
+class ContextPolicyConfig(BaseModel):
+    """Configuration for context policies."""
+
+    policy_type: ContextPolicyType = Field(
+        default=ContextPolicyType.MOST_RECENT,
+        description="The type of context policy to use",
+    )
+    max_messages: int = Field(
+        default=10,
+        description="Maximum number of messages to include in context",
+        ge=1,
+    )
+    threshold_tokens: int | None = Field(
+        default=None,
+        description="Token threshold that triggers summarization",
+    )
+    vector_k: int = Field(
+        default=3,
+        description="Number of semantically relevant messages to retrieve",
+        ge=1,
+    )
+    similarity_threshold: float = Field(
+        default=0.7,
+        description="Minimum similarity score for relevant messages",
+        ge=0.0,
+        le=1.0,
+    )
+    options: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional options for the context policy",
+    )
+
+
 class MemoryConfig(BaseModel):
     """Configuration for memory backends."""
 
@@ -122,6 +165,10 @@ class MemoryConfig(BaseModel):
     options: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional options for the memory backend",
+    )
+    context_policy: ContextPolicyConfig = Field(
+        default_factory=ContextPolicyConfig,
+        description="Configuration for context policy",
     )
 
 
@@ -174,7 +221,7 @@ class SecurityConfig(BaseModel):
 
 class TokenBudgetConfig(BaseModel):
     """Configuration for token usage budget."""
-    
+
     max_tokens_per_request: int | None = Field(
         default=None,
         description="Maximum tokens allowed per request",

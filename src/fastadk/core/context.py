@@ -8,11 +8,12 @@ including long-term memory, summarization, and context window management.
 import hashlib
 import time
 import uuid
-from typing import Any
+from typing import Any, List, Optional
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from fastadk.core.context_policy import ContextPolicy, MostRecentPolicy
 from fastadk.core.exceptions import OperationError
 from fastadk.memory.base import MemoryBackend
 
@@ -108,6 +109,7 @@ class ConversationContext:
         self,
         session_id: str,
         memory_backend: MemoryBackend,
+        context_policy: Optional[ContextPolicy] = None,
         window_size: int = 10,
         max_tokens: int | None = None,
         summarize_threshold: int = 20,
@@ -118,6 +120,7 @@ class ConversationContext:
         Args:
             session_id: Unique identifier for this conversation
             memory_backend: Backend for storing conversation history
+            context_policy: Policy for managing context window (optional)
             window_size: Maximum number of entries in context window
             max_tokens: Maximum tokens in context window (if supported)
             summarize_threshold: When to trigger summarization (number of entries)
@@ -128,7 +131,12 @@ class ConversationContext:
         self.summarize_threshold = summarize_threshold
         self._is_loaded = False
         self._needs_summarization = False
-        self._full_history: list[ContextEntry] = []
+        self._full_history: List[ContextEntry] = []
+
+        # Set the context policy (default to MostRecentPolicy if not provided)
+        self.context_policy = context_policy or MostRecentPolicy(
+            max_messages=window_size
+        )
 
     async def load(self) -> None:
         """
@@ -261,6 +269,12 @@ class ConversationContext:
         if self._needs_summarization:
             await self.summarize_older_context()
 
+        # Apply context policy to determine which messages to include
+        if self.context_policy:
+            context_entries = await self.context_policy.apply(self._full_history)
+        else:
+            context_entries = self.window.entries
+
         formatted = []
 
         # Add summary if available and requested
@@ -272,8 +286,8 @@ class ConversationContext:
                 }
             )
 
-        # Add window entries
-        for entry in self.window.entries:
+        # Add entries from the context policy
+        for entry in context_entries:
             formatted.append({"role": entry.role, "content": entry.content})
 
         return formatted
@@ -394,10 +408,12 @@ class ConversationContext:
         random_component = uuid.uuid4().hex[:8]
 
         if user_id:
-                # Create a deterministic component based on user_id
-                # Use SHA-256 which is more secure than MD5
-                user_hash = hashlib.sha256(user_id.encode(), usedforsecurity=False).hexdigest()[:8]
-                return f"session_{user_hash}_{timestamp}_{random_component}"
+            # Create a deterministic component based on user_id
+            # Use SHA-256 which is more secure than MD5
+            user_hash = hashlib.sha256(
+                user_id.encode(), usedforsecurity=False
+            ).hexdigest()[:8]
+            return f"session_{user_hash}_{timestamp}_{random_component}"
 
         return f"session_{timestamp}_{random_component}"
 
@@ -410,18 +426,27 @@ class ContextManager:
     conversation contexts across different sessions.
     """
 
-    def __init__(self, memory_backend: MemoryBackend):
+    def __init__(
+        self,
+        memory_backend: MemoryBackend,
+        default_context_policy: Optional[ContextPolicy] = None,
+    ):
         """
         Initialize the context manager.
 
         Args:
             memory_backend: Backend for storing conversation contexts
+            default_context_policy: Default policy to apply to new contexts
         """
         self.memory = memory_backend
+        self.default_policy = default_context_policy
         self._contexts: dict[str, ConversationContext] = {}
 
     async def get_context(
-        self, session_id: str, create_if_missing: bool = True
+        self,
+        session_id: str,
+        create_if_missing: bool = True,
+        context_policy: Optional[ContextPolicy] = None,
     ) -> ConversationContext:
         """
         Get a conversation context by session ID.
@@ -429,6 +454,7 @@ class ContextManager:
         Args:
             session_id: The session ID
             create_if_missing: Whether to create a new context if not found
+            context_policy: Optional policy to apply to this context
 
         Returns:
             The conversation context
@@ -449,8 +475,15 @@ class ContextManager:
                 details={"session_id": session_id},
             )
 
+        # Use provided policy, default policy, or null policy in that order
+        policy = context_policy or self.default_policy
+
         # Create a new context
-        context = ConversationContext(session_id=session_id, memory_backend=self.memory)
+        context = ConversationContext(
+            session_id=session_id,
+            memory_backend=self.memory,
+            context_policy=policy,
+        )
 
         # Initialize context
         await context.load()
@@ -507,7 +540,10 @@ class ContextManager:
         return True
 
     async def create_session(
-        self, user_id: str = "", system_message: str | None = None
+        self,
+        user_id: str = "",
+        system_message: Optional[str] = None,
+        context_policy: Optional[ContextPolicy] = None,
     ) -> ConversationContext:
         """
         Create a new conversation session.
@@ -515,12 +551,17 @@ class ContextManager:
         Args:
             user_id: Optional user identifier
             system_message: Optional system message to initialize the context
+            context_policy: Optional policy to apply to this context
 
         Returns:
             The new conversation context
         """
         session_id = ConversationContext.generate_session_id(user_id)
-        context = await self.get_context(session_id, create_if_missing=True)
+        context = await self.get_context(
+            session_id,
+            create_if_missing=True,
+            context_policy=context_policy,
+        )
 
         # Add system message if provided
         if system_message:
