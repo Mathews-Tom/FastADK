@@ -433,6 +433,40 @@ def create_app() -> FastAPI:
             },
         )
 
+    @app.get("/config/reload", response_model=dict)
+    async def reload_config() -> dict:
+        """
+        Reload the configuration from disk.
+
+        This endpoint is useful when you have modified the configuration file
+        and want to apply changes without restarting the application.
+
+        Returns:
+            A confirmation message
+        """
+        try:
+            # Import here to avoid circular imports
+            from fastadk.core.config import reload_settings
+
+            # Reload the settings
+            old_settings = get_settings()
+            new_settings = reload_settings()
+
+            # Return info about what changed
+            return {
+                "status": "success",
+                "message": "Configuration reloaded successfully",
+                "old_environment": old_settings.environment,
+                "new_environment": new_settings.environment,
+                "config_path": new_settings.config_path or "No config file found",
+            }
+        except Exception as e:
+            logger.exception("Error reloading configuration: %s", e)
+            return {
+                "status": "error",
+                "message": f"Error reloading configuration: {str(e)}",
+            }
+
     @app.on_event("startup")
     async def startup_event() -> None:
         logger.info("FastADK API starting up")

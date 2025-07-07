@@ -55,6 +55,7 @@ dependencies = [
     "prometheus-client>=0.17.0",
     "tiktoken>=0.5.0",
     "litellm>=1.74.0",
+    "aioconsole>=0.8.1",
 ]
 dynamic = ["version"]
 
