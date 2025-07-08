@@ -10,7 +10,7 @@ import uuid
 
 from fastapi import APIRouter, FastAPI, HTTPException, Path, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 try:
     import sse_starlette.sse  # noqa: F401
@@ -33,6 +33,7 @@ from fastadk.core.exceptions import (
     ToolError,
     ValidationError,
 )
+from fastadk.observability.metrics import metrics
 
 from .models import (
     AgentInfo,
@@ -66,7 +67,7 @@ class AgentRegistry:
         name = agent_class.__name__
         self._agents[name] = agent_class
         self._instances[name] = {}
-        logger.info(f"Registered agent: {name}")
+        logger.info("Registered agent: %s", name)
 
     def get_agent_class(self, name: str) -> type[BaseAgent]:
         """
@@ -102,7 +103,7 @@ class AgentRegistry:
         if session_id not in self._instances[name]:
             self._instances[name][session_id] = agent_class()
             self._instances[name][session_id].session_id = session_id
-            logger.debug(f"Created new instance of {name} for session {session_id}")
+            logger.debug("Created new instance of %s for session %s", name, session_id)
 
         return self._instances[name][session_id]
 
@@ -163,7 +164,7 @@ class AgentRegistry:
         """
         if name in self._instances and session_id in self._instances[name]:
             del self._instances[name][session_id]
-            logger.debug(f"Cleared session {session_id} for agent {name}")
+            logger.debug("Cleared session %s for agent %s", session_id, name)
 
 
 # Create a global registry
@@ -259,7 +260,7 @@ def create_api_router() -> APIRouter:
             response = await agent.run(request.prompt)
 
             execution_time = time.time() - start_time
-            logger.info(f"Agent {agent_name} completed in {execution_time:.2f}s")
+            logger.info("Agent %s completed in %.2fs", agent_name, execution_time)
 
             # Call the on_finish hook
             agent.on_finish(response)
@@ -277,8 +278,9 @@ def create_api_router() -> APIRouter:
             raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.exception("Unexpected error: %s", e)
+            error_msg = str(e)
             raise HTTPException(
-                status_code=500, detail=f"Internal server error: {str(e)}"
+                status_code=500, detail=f"Internal server error: {error_msg}"
             ) from e
 
     @router.post("/agents/{agent_name}/tools", response_model=ToolResponse)
@@ -305,7 +307,7 @@ def create_api_router() -> APIRouter:
             result = await agent.execute_tool(request.tool_name, **request.parameters)
 
             execution_time = time.time() - start_time
-            logger.info(f"Tool {request.tool_name} completed in {execution_time:.2f}s")
+            logger.info("Tool %s completed in %.2fs", request.tool_name, execution_time)
 
             return ToolResponse(
                 tool_name=request.tool_name,
@@ -382,7 +384,7 @@ def create_app() -> FastAPI:
             app.include_router(streaming_router, tags=["FastADK Streaming"])
             logger.info("Streaming API endpoints enabled")
         except ImportError as e:
-            logger.warning(f"Streaming API endpoints disabled: {str(e)}")
+            logger.warning("Streaming API endpoints disabled: %s", str(e))
 
     # Add exception handlers
     @app.exception_handler(FastADKError)
@@ -431,6 +433,18 @@ def create_app() -> FastAPI:
                 "details": {"errors": exc.errors(), "body": exc.body},
                 "type": "ValidationError",
             },
+        )
+
+    @app.get("/metrics")
+    async def metrics_endpoint() -> Response:
+        """
+        Prometheus metrics endpoint.
+
+        Returns:
+            Metrics in Prometheus format
+        """
+        return Response(
+            content=metrics.generate_latest(), media_type=metrics.content_type()
         )
 
     @app.get("/config/reload", response_model=dict)
