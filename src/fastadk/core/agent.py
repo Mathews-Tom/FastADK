@@ -7,34 +7,23 @@ including the BaseAgent class and @Agent and @tool decorators.
 
 # pylint: disable=attribute-defined-outside-init, redefined-outer-name
 
-import asyncio
 import functools
 import inspect
 import logging
-import os
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any, ClassVar, Dict, Optional, TypeVar
+from typing import Any, ClassVar, Dict, List, Optional, TypeVar
 
-import google.generativeai as genai
-import litellm
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+from ..providers.base import GenerateOptions, Message
+from ..providers.factory import ProviderFactory
 from ..tokens.models import TokenBudget
-from ..tokens.utils import extract_token_usage_from_response, track_token_usage
+from ..tokens.utils import track_token_usage
 from .config import get_settings
-from .exceptions import (
-    AgentError,
-    ConfigurationError,
-    ExceptionTracker,
-    OperationTimeoutError,
-    ToolError,
-)
-
-# Load environment variables from .env file
-load_dotenv()
+from .exceptions import AgentError, ConfigurationError
+from .tool_manager import ToolManager
 
 # Dictionary to store registered agent classes
 _registered_agents: dict[str, type["BaseAgent"]] = {}
@@ -167,13 +156,10 @@ class BaseAgent:
     def __init__(self) -> None:
         """Initialize the agent with configuration settings."""
         self.settings = get_settings()
-        self.tools: dict[str, ToolMetadata] = {}
-        self.tools_used: list[str] = []
         self.session_id: str | None = None
         self.memory_data: dict[str, Any] = {}
-        self.litellm_mode: str = "sdk"
-        self.litellm_endpoint: str = "http://localhost:8000"
         self.last_response: str = ""
+        self.tools_used: List[str] = []  # For backward compatibility
 
         # Initialize token budget if tracking is enabled
         self.token_budget: Optional[TokenBudget] = None
@@ -196,123 +182,66 @@ class BaseAgent:
                 warn_at_percent=getattr(token_budget_settings, "warn_at_percent", 80.0),
             )
 
-        # Initialize tools from class metadata
+        # Create tool manager and initialize tools
+        self.tool_manager = ToolManager(self)
         self._initialize_tools()
 
-        # Initialize model based on configuration
-        self._initialize_model()
+        # For backward compatibility
+        self.tools = self.tool_manager.tools
+
+        # Initialize model provider
+        self._initialize_provider()
 
         logger.info(
             "Initialized agent %s with %d tools",
             self.__class__.__name__,
-            len(self.tools),
+            len(self.tool_manager.tools),
         )
 
     def _initialize_tools(self) -> None:
-        """Initialize tools from class metadata."""
-        # Copy tools from class variable to instance
-        self.tools = {}
+        """Initialize tools from class metadata and instance methods."""
+        # First, register any class-level tools
+        if self._tools:
+            self.tool_manager.register_tools(self._tools)
 
         # Add any instance methods decorated as tools
         for name, method in inspect.getmembers(self, inspect.ismethod):
             # pylint: disable=protected-access
             if hasattr(method, "_is_tool") and method._is_tool:
                 metadata = getattr(method, "_tool_metadata", {})
-                self.tools[name] = ToolMetadata(
-                    name=name,
-                    description=metadata.get("description", method.__doc__ or ""),
-                    function=method,
-                    cache_ttl=metadata.get("cache_ttl", 0),
-                    timeout=metadata.get("timeout", 30),
-                    retries=metadata.get("retries", 0),
-                    enabled=metadata.get("enabled", True),
-                    parameters=metadata.get("parameters", {}),
-                    return_type=metadata.get("return_type", None),
+                self.tool_manager.register_tool(
+                    ToolMetadata(
+                        name=name,
+                        description=metadata.get("description", method.__doc__ or ""),
+                        function=method,
+                        cache_ttl=metadata.get("cache_ttl", 0),
+                        timeout=metadata.get("timeout", 30),
+                        retries=metadata.get("retries", 0),
+                        enabled=metadata.get("enabled", True),
+                        parameters=metadata.get("parameters", {}),
+                        return_type=metadata.get("return_type", None),
+                    )
                 )
 
-    def _initialize_model(self) -> None:
-        """Initialize the AI model based on configuration."""
+    def _initialize_provider(self) -> None:
+        """Initialize the model provider based on configuration."""
         try:
-            if self._provider == "gemini":
-                self._initialize_gemini_model()
-            elif self._provider == "openai":
-                self._initialize_openai_model()
-            elif self._provider == "anthropic":
-                self._initialize_anthropic_model()
-            elif self._provider == "litellm":
-                self._initialize_litellm_model()
-            elif self._provider == "simulated":
-                # Use mock model for simulation and testing
-                from fastadk.testing.utils import MockModel
+            # Create provider configuration
+            provider_config = {
+                "model": self._model_name,
+                "system_message": self._system_message,
+            }
 
-                self.model = MockModel()  # type: ignore
-                logger.info("Initialized simulated mock model")
-            else:
-                # If provider is unknown, try to use a mock model
-                raise ConfigurationError(
-                    f"Unsupported provider: {self._provider}. "
-                    "Supported providers: 'gemini', 'openai', 'anthropic', 'litellm', 'simulated'"
-                )
-        except Exception as e:
-            raise ConfigurationError(f"Failed to initialize model: {e}") from e
+            # Create the provider instance using the factory
+            self.provider = ProviderFactory.create(self._provider, provider_config)
 
-    def _initialize_gemini_model(self) -> None:
-        """Initialize Gemini model."""
-        # Using getattr to avoid FieldInfo errors in IDE
-        api_key_var = getattr(self.settings.model, "api_key_env_var", "GEMINI_API_KEY")
-        api_key = os.environ.get(api_key_var) or os.environ.get("GEMINI_API_KEY")
-
-        if api_key:
-            genai.configure(api_key=api_key)
-            # Set default Gemini configuration
-            self.model = genai.GenerativeModel(self._model_name)  # type: ignore
-            logger.info("Initialized Gemini model %s", self._model_name)
-        else:
-            # For tests, use a mock model if no API key is available
-            from fastadk.testing.utils import MockModel
-
-            # pylint: disable=attribute-defined-outside-init
-            self.model = MockModel()  # type: ignore
+            # Initialize the provider (will be done asynchronously on first run)
             logger.info(
-                "Using mock model for %s (no API key available)",
-                self._model_name,
+                "Provider %s registered for model %s", self._provider, self._model_name
             )
-
-    def _initialize_openai_model(self) -> None:
-        """Initialize OpenAI model."""
-        try:
-            import openai
-
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                raise ConfigurationError("OPENAI_API_KEY environment variable not set")
-
-            # Initialize the client
-            self.model = openai.OpenAI(api_key=api_key)  # type: ignore
-            logger.info("Initialized OpenAI model %s", self._model_name)
-        except ImportError as exc:
-            raise ImportError(
-                "OpenAI package not installed. Install with: uv add openai"
-            ) from exc
-
-    def _initialize_anthropic_model(self) -> None:
-        """Initialize Anthropic model."""
-        try:
-            import anthropic
-
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise ConfigurationError(
-                    "ANTHROPIC_API_KEY environment variable not set"
-                )
-
-            # Initialize the client
-            self.model = anthropic.Anthropic(api_key=api_key)  # type: ignore
-            logger.info("Initialized Anthropic model %s", self._model_name)
-        except ImportError as exc:
-            raise ImportError(
-                "Anthropic package not installed. Install with: uv add anthropic"
-            ) from exc
+        except Exception as exc:
+            logger.error("Failed to initialize provider: %s", str(exc), exc_info=True)
+            raise ConfigurationError(f"Failed to initialize provider: {exc}") from exc
 
     async def run(self, user_input: str) -> str:
         """
@@ -328,21 +257,55 @@ class BaseAgent:
             The agent's response as a string
         """
         start_time = time.time()
-        self.tools_used = []  # Reset tools used for this run
+        self.tool_manager.reset()  # Reset tools used for this run
 
         try:
-            # Simple implementation for now - just pass to model
-            # In future versions, this will handle tool calling and memory
+            # Call the on_start hook
+            self.on_start()
+
+            # Initialize the provider if needed
+            await self._ensure_provider_initialized()
+
+            # Generate response from the model
             response = await self._generate_response(user_input)
+
+            # Call the on_finish hook
+            self.on_finish(response)
 
             # Log execution time
             execution_time = time.time() - start_time
             logger.info("Agent execution completed in %.2fs", execution_time)
 
             return response
-        except Exception as e:
-            logger.error("Error during agent execution: %s", e, exc_info=True)
-            raise AgentError(f"Failed to process input: {e}") from e
+        except Exception as exc:
+            # Call the on_error hook
+            self.on_error(exc)
+
+            logger.error("Error during agent execution: %s", str(exc), exc_info=True)
+            raise AgentError(f"Failed to process input: {exc}") from exc
+
+    async def _ensure_provider_initialized(self) -> None:
+        """Ensure the provider is initialized."""
+        try:
+            # Create a configuration dict for the provider
+            config = {
+                "model": self._model_name,
+                "system_message": self._system_message,
+            }
+
+            # Add any model-specific configuration from settings
+            if hasattr(self.settings, "model"):
+                model_settings = getattr(self.settings, "model", {})
+                for key, value in model_settings.__dict__.items():
+                    if key.startswith("_"):
+                        continue
+                    config[key] = value
+
+            # Initialize the provider
+            await self.provider.initialize(config)
+        except Exception as exc:
+            logger.error("Failed to initialize provider: %s", str(exc), exc_info=True)
+            raise ConfigurationError(f"Failed to initialize provider: {exc}") from exc
 
     async def _generate_response(self, user_input: str) -> str:
         """Generate a response from the model."""
@@ -354,50 +317,39 @@ class BaseAgent:
                 self.last_response = cache_response
                 return cache_response
 
-            # Handle different providers
-            if self._provider == "gemini":
-                response_text = await self._generate_gemini_response(user_input)
-            elif self._provider == "openai":
-                response_text = await self._generate_openai_response(user_input)
-            elif self._provider == "anthropic":
-                response_text = await self._generate_anthropic_response(user_input)
-            elif self._provider == "litellm":
-                response_text = await self._generate_litellm_response(user_input)
-            elif self._provider == "simulated":
-                # For simulated/mock model
-                if hasattr(self.model, "generate_content"):
-                    response = await asyncio.to_thread(
-                        lambda: self.model.generate_content(user_input).text
-                    )
-                    response_text = str(response)
-                else:
-                    response_text = f"Simulated response to: {user_input}"
+            # Prepare messages for the provider
+            messages = self._prepare_messages(user_input)
 
-                # Generate simulated token usage for demonstration purposes
-                if getattr(self.settings.model, "track_tokens", False):
-                    # Create simulated token usage based on input length
-                    prompt_tokens = len(user_input.split())
-                    completion_tokens = len(response_text.split())
+            # Set generation options
+            options = GenerateOptions(
+                temperature=getattr(self.settings.model, "temperature", 0.7),
+                max_tokens=getattr(self.settings.model, "max_tokens", 1000),
+                top_p=getattr(self.settings.model, "top_p", None),
+                top_k=getattr(self.settings.model, "top_k", None),
+                stop_sequences=getattr(self.settings.model, "stop_sequences", None),
+            )
 
-                    # Create a simulated response object with usage data
-                    from ..tokens.models import TokenUsage
+            # Generate response
+            result = await self.provider.generate(messages, options)
+            response_text = result.text
 
-                    usage = TokenUsage(
-                        prompt_tokens=prompt_tokens
-                        * 2,  # Simulate token encoding (more tokens than words)
-                        completion_tokens=completion_tokens * 2,
-                        model=self._model_name,
-                        provider="simulated",
-                    )
+            # Track token usage if enabled
+            if (
+                getattr(self.settings.model, "track_tokens", False)
+                and self.token_budget
+            ):
+                custom_price = getattr(self.settings.model, "custom_price_per_1k", {})
+                # Convert GenerateResult to TokenUsage for tracking
+                from ..tokens.models import TokenUsage
 
-                    # Get custom price if available
-                    custom_price = getattr(
-                        self.settings.model, "custom_price_per_1k", {}
-                    )
-                    track_token_usage(usage, self.token_budget, custom_price)
-            else:
-                # If no provider matched
-                raise AgentError(f"Unsupported provider: {self._provider}")
+                token_usage = TokenUsage(
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens,
+                    model=self._model_name,
+                    provider=self._provider,
+                )
+
+                track_token_usage(token_usage, self.token_budget, custom_price)
 
             # Cache the response
             await self._cache_response(user_input, response_text)
@@ -405,9 +357,30 @@ class BaseAgent:
             # Store the response for potential tool skipping logic
             self.last_response = response_text
             return response_text
-        except Exception as e:
-            logger.error("Error generating response: %s", e, exc_info=True)
-            raise AgentError(f"Failed to generate response: {e}") from e
+        except Exception as exc:
+            logger.error("Error generating response: %s", str(exc), exc_info=True)
+            raise AgentError(f"Failed to generate response: {exc}") from exc
+
+    def _prepare_messages(self, user_input: str) -> List[Message]:
+        """
+        Prepare messages for the provider.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            List of messages ready for the provider
+        """
+        messages = []
+
+        # Add system message if available
+        if self._system_message:
+            messages.append(Message(role="system", content=self._system_message))
+
+        # Add user message
+        messages.append(Message(role="user", content=user_input))
+
+        return messages
 
     async def _check_cache(self, user_input: str) -> str | None:
         """
@@ -437,9 +410,9 @@ class BaseAgent:
             # Try to get from cache
             cached_response = await default_cache_manager.get(cache_key)
             return cached_response
-        except Exception as e:
+        except Exception as exc:
             # Log but don't fail if cache check fails
-            logger.warning(f"Error checking cache: {e}")
+            logger.warning("Error checking cache: %s", str(exc))
             return None
 
     async def _cache_response(self, user_input: str, response: str) -> None:
@@ -467,194 +440,9 @@ class BaseAgent:
 
             # Cache the response
             await default_cache_manager.set(cache_key, response, ttl=cache_ttl)
-        except Exception as e:
+        except Exception as exc:
             # Log but don't fail if caching fails
-            logger.warning(f"Error caching response: {e}")
-
-    async def _generate_gemini_response(self, user_input: str) -> str:
-        """Generate a response using the Gemini model."""
-        response = await asyncio.to_thread(
-            lambda: self.model.generate_content(user_input)
-        )
-
-        # Extract the response text
-        response_text = response.text if hasattr(response, "text") else str(response)
-
-        # Track token usage if enabled
-        if getattr(self.settings.model, "track_tokens", False):
-            usage = extract_token_usage_from_response(
-                response, "gemini", self._model_name
-            )
-            if usage:
-                # Get custom price if available
-                custom_price = getattr(self.settings.model, "custom_price_per_1k", {})
-                track_token_usage(usage, self.token_budget, custom_price)
-
-        return response_text
-
-    async def _generate_openai_response(self, user_input: str) -> str:
-        """Generate a response using the OpenAI model."""
-        # Handle both real OpenAI model and mock model
-        if hasattr(self.model, "chat"):
-            response = await asyncio.to_thread(
-                lambda: self.model.chat.completions.create(  # type: ignore
-                    model=self._model_name,
-                    messages=[{"role": "user", "content": user_input}],
-                    max_tokens=1000,
-                )
-            )
-
-            # Track token usage if enabled
-            if getattr(self.settings.model, "track_tokens", False):
-                usage = extract_token_usage_from_response(
-                    response, "openai", self._model_name
-                )
-                if usage:
-                    # Get custom price if available
-                    custom_price = getattr(
-                        self.settings.model, "custom_price_per_1k", {}
-                    )
-                    track_token_usage(
-                        usage,
-                        self.token_budget,
-                        custom_price,
-                    )
-
-                    # Check if we exceeded budget limits
-                    if (
-                        self.token_budget
-                        and usage
-                        and self.token_budget.max_tokens_per_request
-                        and usage.total_tokens
-                        > self.token_budget.max_tokens_per_request
-                    ):
-                        logger.warning(
-                            "Token limit exceeded: %d > %d",
-                            usage.total_tokens,
-                            self.token_budget.max_tokens_per_request,
-                        )
-
-            return response.choices[0].message.content or ""  # type: ignore
-
-        # Fallback for mock model
-        return f"OpenAI mock response to: {user_input}"
-
-    async def _generate_anthropic_response(self, user_input: str) -> str:
-        """Generate a response using the Anthropic model."""
-        # Handle both real Anthropic model and mock model
-        if hasattr(self.model, "messages"):
-            response = await asyncio.to_thread(
-                lambda: self.model.messages.create(  # type: ignore
-                    model=self._model_name,
-                    messages=[{"role": "user", "content": user_input}],
-                    max_tokens=1000,
-                )
-            )
-
-            # Track token usage if enabled
-            if getattr(self.settings.model, "track_tokens", False):
-                usage = extract_token_usage_from_response(
-                    response, "anthropic", self._model_name
-                )
-                if usage:
-                    # Get custom price if available
-                    custom_price = getattr(
-                        self.settings.model, "custom_price_per_1k", {}
-                    )
-                    track_token_usage(
-                        usage,
-                        self.token_budget,
-                        custom_price,
-                    )
-
-            return response.content[0].text  # type: ignore
-
-        # Fallback for mock model
-        return f"Anthropic mock response to: {user_input}"
-
-    def _initialize_litellm_model(self) -> None:
-        """Initialize LiteLLM model."""
-        try:
-            # Get API key and configuration
-            api_key_var = getattr(
-                self.settings.model, "api_key_env_var", "LITELLM_API_KEY"
-            )
-            api_key = os.environ.get(api_key_var) or os.environ.get("LITELLM_API_KEY")
-
-            # Get mode configuration (sdk or proxy)
-            mode = getattr(self.settings.model, "litellm_mode", "sdk")
-
-            if mode == "proxy":
-                # Configure for proxy mode
-                endpoint = getattr(
-                    self.settings.model, "litellm_endpoint", "http://localhost:8000"
-                )
-                litellm.api_base = endpoint
-
-                if api_key:
-                    litellm.api_key = api_key
-
-                # Store mode and endpoint for later use
-                self.litellm_mode = "proxy"
-                self.litellm_endpoint = endpoint
-                logger.info(
-                    "Initialized LiteLLM in proxy mode with endpoint %s", endpoint
-                )
-            else:
-                # SDK mode is the default
-                if api_key:
-                    litellm.api_key = api_key
-
-                self.litellm_mode = "sdk"
-                logger.info("Initialized LiteLLM in SDK mode")
-
-            # Store LiteLLM client instance
-            self.model = litellm  # type: ignore
-        except ImportError as exc:
-            raise ImportError(
-                "LiteLLM package not installed. Install with: uv add litellm"
-            ) from exc
-
-    async def _generate_litellm_response(self, user_input: str) -> str:
-        """Generate a response using the LiteLLM client."""
-        # Create the messages array for LiteLLM (similar to OpenAI format)
-        messages = [{"role": "user", "content": user_input}]
-
-        # Add system message if available
-        system_message = getattr(self, "_system_message", None)
-        if system_message:
-            messages.insert(0, {"role": "system", "content": system_message})
-
-        try:
-            # Call LiteLLM completion
-            response = await asyncio.to_thread(
-                lambda: litellm.completion(
-                    model=self._model_name,
-                    messages=messages,
-                    max_tokens=1000,
-                )
-            )
-
-            # Extract the response text
-            response_text = response.choices[0].message.content
-
-            # Track token usage if enabled
-            if getattr(self.settings.model, "track_tokens", False):
-                usage = extract_token_usage_from_response(
-                    response, "litellm", self._model_name
-                )
-                if usage:
-                    # Get custom price if available
-                    custom_price = getattr(
-                        self.settings.model, "custom_price_per_1k", {}
-                    )
-                    track_token_usage(usage, self.token_budget, custom_price)
-
-            return response_text or ""
-        except Exception as e:  # noqa: BLE001
-            logger.error("Error generating response with LiteLLM: %s", str(e))
-            # Fallback for error cases
-            return f"Error generating response: {str(e)}"
+            logger.warning("Error caching response: %s", str(exc))
 
     async def execute_tool(
         self,
@@ -674,112 +462,19 @@ class BaseAgent:
         Returns:
             The result of the tool execution or a message indicating the tool was skipped
         """
-        if tool_name not in self.tools:
-            raise ToolError(f"Tool '{tool_name}' not found")
+        # Delegate to the tool manager
+        result = await self.tool_manager.execute_tool(
+            tool_name, skip_if_response_contains, **kwargs
+        )
 
-        tool = self.tools[tool_name]
-        if not tool.enabled:
-            raise ToolError(f"Tool '{tool_name}' is disabled")
+        # For backward compatibility
+        if (
+            tool_name not in self.tools_used
+            and tool_name in self.tool_manager.tools_used
+        ):
+            self.tools_used.append(tool_name)
 
-        # Check if we should skip the tool execution based on LLM response
-        if skip_if_response_contains and hasattr(self, "last_response"):
-            last_response = getattr(self, "last_response", "")
-            for phrase in skip_if_response_contains:
-                if phrase.lower() in last_response.lower():
-                    logger.info(
-                        "Skipping tool '%s' execution because response already contains relevant info",
-                        tool_name,
-                    )
-                    return {
-                        "skipped": True,
-                        "reason": f"Response already contains '{phrase}'",
-                        "tool_name": tool_name,
-                    }
-
-        # If not skipped, proceed with execution
-        self.tools_used.append(tool_name)
-        logger.info("Executing tool '%s' with args: %s", tool_name, kwargs)
-
-        # Check if tool function is a coroutine
-        is_coroutine = asyncio.iscoroutinefunction(tool.function)
-
-        # Execute with timeout and retry logic
-        remaining_retries = tool.retries
-        while True:
-            try:
-                # Execute tool with timeout
-                if is_coroutine:
-                    # If it's already a coroutine, just await it
-                    result = await asyncio.wait_for(
-                        tool.function(**kwargs),
-                        timeout=tool.timeout,
-                    )
-                else:
-                    # Run sync function in a thread pool
-                    result = await asyncio.wait_for(
-                        asyncio.to_thread(lambda: tool.function(**kwargs)),
-                        timeout=tool.timeout,
-                    )
-
-                # Try to cache the result if caching is enabled
-                from .cache import default_cache_manager
-
-                cache_ttl = getattr(tool, "cache_ttl", 0)
-                if cache_ttl > 0:
-                    # Create a cache key from the tool name and arguments
-                    cache_key = {
-                        "tool": tool_name,
-                        "args": kwargs,
-                    }
-                    await default_cache_manager.set(cache_key, result, ttl=cache_ttl)
-
-                return result
-
-            except asyncio.TimeoutError:
-                logger.warning("Tool '%s' timed out after %ds", tool_name, tool.timeout)
-                if remaining_retries > 0:
-                    remaining_retries -= 1
-                    logger.info(
-                        "Retrying tool '%s', %d retries left",
-                        tool_name,
-                        remaining_retries,
-                    )
-                    continue
-                timeout_error = OperationTimeoutError(
-                    message=f"Tool '{tool_name}' timed out and max retries exceeded",
-                    error_code="TOOL_TIMEOUT",
-                    details={
-                        "tool_name": tool_name,
-                        "timeout_seconds": tool.timeout,
-                        "retries_attempted": tool.retries,
-                    },
-                )
-                ExceptionTracker.track_exception(timeout_error)
-                raise timeout_error from None
-
-            except Exception as e:
-                logger.error(
-                    "Error executing tool '%s': %s", tool_name, str(e), exc_info=True
-                )
-                if remaining_retries > 0:
-                    remaining_retries -= 1
-                    logger.info(
-                        "Retrying tool '%s', %d retries left",
-                        tool_name,
-                        remaining_retries,
-                    )
-                    continue
-                tool_error = ToolError(
-                    message=f"Tool '{tool_name}' failed: {e}",
-                    error_code="TOOL_EXECUTION_ERROR",
-                    details={
-                        "tool_name": tool_name,
-                        "original_error": str(e),
-                        "error_type": type(e).__name__,
-                    },
-                )
-                ExceptionTracker.track_exception(tool_error)
-                raise tool_error from e
+        return result
 
     def on_start(self) -> None:
         """Hook called when the agent starts processing a request."""
@@ -946,22 +641,28 @@ def tool(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             # If this is the first time the method is called through the instance
             # make sure it's registered in the instance's tools dictionary
-            if args and hasattr(args[0], "tools") and isinstance(args[0], BaseAgent):
+            if (
+                args
+                and hasattr(args[0], "tool_manager")
+                and isinstance(args[0], BaseAgent)
+            ):
                 self_obj = args[0]
                 method_name = func.__name__
 
                 # Register the method in the instance's tools if not already there
-                if method_name not in self_obj.tools:
-                    self_obj.tools[method_name] = ToolMetadata(
-                        name=method_name,
-                        description=description,
-                        function=getattr(self_obj, func.__name__),
-                        cache_ttl=cache_ttl,
-                        timeout=timeout,
-                        retries=retries,
-                        enabled=enabled,
-                        parameters=parameters,
-                        return_type=return_type,
+                if method_name not in self_obj.tool_manager.tools:
+                    self_obj.tool_manager.register_tool(
+                        ToolMetadata(
+                            name=method_name,
+                            description=description,
+                            function=getattr(self_obj, func.__name__),
+                            cache_ttl=cache_ttl,
+                            timeout=timeout,
+                            retries=retries,
+                            enabled=enabled,
+                            parameters=parameters,
+                            return_type=return_type,
+                        )
                     )
 
             # Execute the original function
