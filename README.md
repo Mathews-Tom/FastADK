@@ -1,10 +1,10 @@
 # FastADK – Declarative, Provider-Agnostic AI Agents, from Prototype to Production in Minutes
 
+![FastADK Banner](docs/assets/FastADK-Banner.png)
+
 ## Introduction
 
 FastADK is an **open-source Python “agent-OS”** that layers ergonomic abstractions over Google ADK, Vertex AI and other LLM back-ends—OpenAI, Anthropic, Gemini, LiteLLM or any custom provider—so teams can design, test and ship tool-using agents with almost no boilerplate. A pair of declarative decorators (`@Agent`, `@tool`) turns plain Python classes into fully featured AI workers, while the same codebase can be elevated from a local notebook to containerised or server-less production without rewrites.
-
-![FastADK Banner](docs/assets/FastADK-Banner.png)
 
 ### Core Feature Set
 
