@@ -63,7 +63,7 @@ For setting up a development environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/aetherforge/fastadk.git
+git clone https://github.com/Mathews-Tom/FastADK.git
 cd fastadk
 
 # Create a virtual environment
@@ -125,7 +125,7 @@ FastADK includes several examples to help you get started. To run them:
 
 ```bash
 # Clone the repository if you haven't already
-git clone https://github.com/aetherforge/fastadk.git
+git clone https://github.com/Mathews-Tom/FastADK.git
 cd fastadk
 
 # Create and activate a virtual environment if you haven't already

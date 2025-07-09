@@ -13,7 +13,7 @@ Before you begin, ensure you have the following installed:
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/aetherforge/fastadk.git
+git clone https://github.com/Mathews-Tom/FastADK.git
 cd fastadk
 ```
 
