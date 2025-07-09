@@ -73,7 +73,6 @@ nav:
   - Getting Started:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quick-start.md
-    - Tutorial: getting-started/tutorial.md
   - System Overview: system-overview.md
   - Concepts:
     - Agents: concepts/agents.md
@@ -84,36 +83,26 @@ nav:
   - API Reference:
     - core:
       - Agent: api/core/agent.md
-      - Config: api/core/config.md
-      - Context: api/core/context.md
-      - Exceptions: api/core/exceptions.md
-      - Property Types: api/core/property-types.md
-      - Retry: api/core/retry.md
-      - Workflow: api/core/workflow.md
     - memory:
       - Base: api/memory/base.md
-      - InMemory: api/memory/inmemory.md
-      - Redis: api/memory/redis.md
     - api:
       - Models: api/api/models.md
-      - Router: api/api/router.md
-      - Streaming: api/api/streaming.md
     - cli:
       - Main: api/cli/main.md
     - testing:
       - Utils: api/testing/utils.md
   - Examples:
+    - Example Recommendations: examples/example_recommendations.md
     - Basic:
-      - Weather Agent: examples/basic/weather_agent.md
       - Exception Handling: examples/basic/exception_demo.md
       - Reasoning Demo: examples/basic/reasoning_demo.md
       - Token Tracking: examples/basic/token_tracking_demo.md
+      - Weather Agent: examples/basic/weather_agent.md
       - LiteLLM Integration: examples/basic/litellm_demo.md
     - Advanced:
       - Finance Assistant: examples/advanced/finance_assistant.md
       - Customer Support: examples/advanced/customer_support.md
       - Workflow Demo: examples/advanced/workflow_demo.md
-      - Travel Assistant: examples/advanced/travel_assistant.md
     - UI:
       - Streamlit Chat App: examples/ui/streamlit_chat_app.md
     - API:
@@ -127,8 +116,12 @@ nav:
     - Guidelines: contributing/guidelines.md
     - Development Setup: contributing/development-setup.md
     - Code of Conduct: contributing/code-of-conduct.md
-  - FAQ: faq.md
-  - Roadmap: roadmap.md
+  - Research:
+    - Competitive Analysis: research/competitive_analysis.md
+    - Technical Feasibility: research/technical_feasibility.md
+    - User Research: research/user_research.md
+  - Project Charter: PROJECT_CHARTER.md
+  - Cookbook: cookbook.md
   - Changelog: changelog.md
 
 extra:

@@ -90,8 +90,8 @@ class MathAgent(BaseAgent):
 - [Installation](getting-started/installation.md): Detailed installation instructions
 - [Quick Start](getting-started/quick-start.md): Create your first agent in minutes
 - [System Overview](system-overview.md): Comprehensive explanation of FastADK's architecture and benefits
-- [Tutorial](getting-started/tutorial.md): Step-by-step guide to building a complete agent
-- [Examples](examples/weather-agent.md): Real-world examples to learn from
+- [Concepts](concepts/agents.md): Learn about key FastADK concepts
+- [Examples](examples/basic/reasoning_demo.md): Real-world examples to learn from
 
 ## Join the Community
 
