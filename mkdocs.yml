@@ -94,7 +94,7 @@ nav:
     - testing:
       - Utils: api/testing/utils.md
   - Examples:
-    - Example Recommendations: examples/example_recommendations.md
+    - Examples Index: examples/index.md
     - Basic:
       - Exception Handling: examples/basic/exception_demo.md
       - Reasoning Demo: examples/basic/reasoning_demo.md
