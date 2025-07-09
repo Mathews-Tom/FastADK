@@ -1,99 +1,62 @@
 # FastADK System Overview
 
-FastADK is a comprehensive framework that dramatically simplifies and accelerates the development of AI agents. This document provides a detailed explanation of the system, its architecture, benefits, and usage patterns.
+FastADK is a comprehensive framework that dramatically simplifies and accelerates the development of AI agents. This document provides a detailed explanation of the system's architecture, components, workflows, and benefits in version 0.2.0.
 
 ## What is FastADK?
 
-FastADK (Fast Agent Development Kit) is a developer-friendly framework built on top of Google's Agent Development Kit. It provides high-level abstractions, declarative APIs, and intuitive tooling to make AI agent development more efficient, maintainable, and enjoyable.
+FastADK (Fast Agent Development Kit) is a developer-friendly Python framework that provides high-level abstractions, declarative APIs, and intuitive tooling to make AI agent development more efficient, maintainable, and enjoyable.
 
-Think of FastADK as the "FastAPI for AI agents" – it brings the same developer experience improvements to agent development that FastAPI brought to web API development.
+The framework creates a layer of ergonomic abstractions over various LLM providers (OpenAI, Anthropic, Google Gemini), enabling developers to design, test, and deploy tool-using LLM agents with minimal boilerplate code.
 
-FastADK is designed to be an **open-source** project with the potential for optional commercial add-ons in the future. It targets Python 3.10+ and leverages familiar libraries in the Python ecosystem, including FastAPI for web serving, Pydantic for data models, and Typer/Click for CLI interfaces.
+FastADK is designed as an **open-source** project with the potential for optional commercial add-ons in the future. It targets Python 3.10+ and leverages familiar libraries in the Python ecosystem, including FastAPI for web serving, Pydantic for data validation, and specialized modules for memory management and observability.
 
-## Why FastADK?
+## Key Features in Version 0.2.0
 
-### The Agent Development Challenge
+The 0.2.0 release introduces significant improvements across all aspects of the framework:
 
-Building AI agents traditionally involves:
+### Token and Cost Tracking
 
-- Complex boilerplate code
-- Manual handling of API calls to LLM providers
-- Custom implementation of memory systems
-- Error-prone type checking and validation
-- Building HTTP APIs from scratch
-- Limited standardization and reusability
-- Manual wiring of tool registration and function calling
-- Custom implementation of agent lifecycle management
-- Building error handling and retry mechanisms from scratch
+- **TokenUsage Tracking**: Automatic tracking of prompt, completion, and total tokens
+- **Cost Calculation**: Integrated cost estimation based on provider pricing
+- **Budget Management**: Configurable per-session and per-query token budgets
+- **Usage Metrics**: Prometheus metrics for token usage and cost monitoring
 
-### FastADK's Solution
+### Advanced Memory Management
 
-FastADK addresses these challenges with:
+- **Context Policies**: Sliding window, summarization, and hybrid vector retrieval
+- **Vector Store Integration**: FAISS, Pinecone, and other vector databases
+- **Persistent Backends**: Redis and SQL database integration
+- **Summarization Service**: LLM-powered conversation summarization
 
-- **Declarative Syntax**: Define agents with decorators instead of complex class hierarchies
-- **Multi-Provider Support**: Easily switch between Gemini, OpenAI, and Anthropic
-- **Built-in Memory Management**: Store and retrieve conversation context with pluggable backends
-- **Automatic Type Validation**: Ensure data consistency with Python type hints
-- **HTTP API Integration**: Serve agents via REST APIs with zero additional code
-- **Comprehensive Error Handling**: Clear, consistent error messages and recovery mechanisms
-- **Workflow Orchestration**: Compose multiple agents and tools to solve complex problems
-- **Lifecycle Hooks**: Easily customize agent behavior with `on_start`, `on_input`, `on_finish`, etc.
-- **Standardized Configuration**: Centralized configuration via YAML, environment variables, or Pydantic settings
-- **Simplified Tool Registration**: Register tools with a simple `@tool` decorator that handles schema generation
+### Scalability and Performance
 
-## Development Efficiency Gains
+- **True Async**: Non-blocking async execution for models and tools
+- **Parallel Workflows**: Run sub-tasks concurrently with easy orchestration
+- **Caching**: In-memory and Redis caching for responses and tools
+- **Lazy Tool Execution**: Skip unnecessary tool calls when possible
+- **Batch Processing**: Utilities for handling bulk operations
 
-### Rapid Prototyping and Development
+### Extensibility and Integration
 
-FastADK is designed with developer productivity as a primary goal:
+- **Plugin Architecture**: Discover and load custom modules dynamically
+- **Adapter Interfaces**: Discord and Slack integration adapters
+- **Multi-Agent Orchestration**: Coordinate multiple specialized agents
+- **Fine-Tuning Helpers**: Utilities for model customization
 
-- **CLI Development Tools**: Commands like `agent run`, `agent dev` (with hot-reload), and `agent init` to scaffold projects
-- **Built-in Testing Utilities**: Leverage ADK's evaluation features for agent response testing
-- **Integrated Observability**: Structured logging of agent actions, tool calls, and errors
+### Developer Experience
 
-### UV for Faster Development
+- **Interactive REPL**: Command-line REPL for agent development and testing
+- **Debugging Tools**: Verbose logging and chain-of-thought capture
+- **Test Framework**: Mock LLMs and tools for deterministic testing
+- **Project Scaffolding**: `fastadk init` command for quick setup
+- **IDE Support**: VSCode snippets and type hints
 
-FastADK recommends [UV](https://github.com/astral-sh/uv) as the package manager and runner for Python projects. UV provides significant performance improvements:
+### Observability
 
-- **10-100x faster** package installations than pip
-- **Better dependency resolution** with fewer conflicts
-- **Reduced virtual environment setup time** from minutes to seconds
-- **Consistent reproducible builds** across different environments
-- **Simple command syntax** for running Python scripts and modules
-
-Using UV with FastADK creates a smoother, faster development experience, especially when working with the many dependencies required for AI agent development.
-
-### Lines of Code Reduction
-
-FastADK dramatically reduces the amount of code needed to build functional agents:
-
-| Task | Raw ADK | FastADK | Reduction |
-|------|---------|---------|-----------|
-| Simple agent with 2 tools | ~150 lines | ~25 lines | 83% |
-| Agent with memory | ~250 lines | ~40 lines | 84% |
-| Agent with HTTP API | ~350 lines | ~30 lines | 91% |
-| Multi-agent workflow | ~500 lines | ~80 lines | 84% |
-
-This reduction in code is achieved through FastADK's high-level abstractions, declarative syntax, and elimination of boilerplate that would otherwise be required when working directly with Google's ADK.
-
-### Development Time Improvements
-
-Based on our testing and user feedback:
-
-- **Initial Setup**: 30 minutes → 5 minutes (83% reduction)
-- **First Agent Development**: 4 hours → 45 minutes (81% reduction)
-- **Production Deployment**: 8 hours → 1.5 hours (81% reduction)
-- **Maintenance Updates**: 2 hours → 20 minutes (83% reduction)
-
-### Adaptability Benefits
-
-FastADK significantly improves adaptability across several dimensions:
-
-- **Model Switching**: Change LLM providers with a single parameter change
-- **Feature Expansion**: Add new tools to existing agents with minimal code
-- **Deployment Flexibility**: Run locally, as a service, or in the cloud without code changes
-- **Team Scaling**: Standardized patterns make onboarding new developers faster
-- **Backward Compatibility**: Careful versioning ensures updates don't break existing code
+- **Structured Logging**: JSON logs for all agent events
+- **OpenTelemetry**: Traces and spans for performance monitoring
+- **Prometheus Metrics**: Endpoint for metrics collection
+- **Redaction Filter**: Protect sensitive data in logs
 
 ## System Architecture
 
@@ -101,449 +64,936 @@ FastADK follows a modular architecture designed for flexibility, extensibility, 
 
 ```mermaid
 graph TD
-    A[Developer Code] --> B[FastADK Core]
-    B --> C[Provider Adapters]
-    B --> D[Memory Backends]
-    B --> E[Workflow Engine]
-    B --> F[HTTP API]
-    C --> G[Gemini]
-    C --> H[OpenAI]
-    C --> I[Anthropic]
-    D --> J[In-Memory]
-    D --> K[Redis]
-    D --> L[Vector DB]
-    F --> M[FastAPI]
+    subgraph "User Applications"
+        UA[Agent Implementations]
+    end
+    
+    subgraph "FastADK Framework"
+        subgraph "Core"
+            A[Agent System]
+            T[Tool Manager]
+            W[Workflow Engine]
+            CP[Context Policies]
+            PM[Plugin Manager]
+        end
+        
+        subgraph "Infrastructure"
+            O[Observability]
+            C[Configuration]
+            API[HTTP API]
+            CLI[CLI Tools]
+        end
+        
+        subgraph "Providers"
+            PO[OpenAI]
+            PG[Gemini]
+            PA[Anthropic]
+            PL[LiteLLM]
+            PC[Custom]
+        end
+        
+        subgraph "Memory"
+            MI[In-Memory]
+            MR[Redis]
+            MV[Vector Store]
+            MS[SQL]
+        end
+        
+        subgraph "Tokens"
+            TC[Counting]
+            TP[Pricing]
+            TB[Budgeting]
+        end
+        
+        subgraph "Adapters"
+            AD[Discord]
+            AS[Slack]
+            AC[Custom]
+        end
+    end
+    
+    subgraph "External Services"
+        LLM[LLM APIs]
+        DB[Databases]
+        MM[Metrics & Monitoring]
+    end
+    
+    UA --> A
+    A --> T
+    A --> W
+    A --> CP
+    A --> PM
+    
+    A --> O
+    A --> C
+    A --> API
+    
+    A --> PO
+    A --> PG
+    A --> PA
+    A --> PL
+    A --> PC
+    
+    A --> MI
+    A --> MR
+    A --> MV
+    A --> MS
+    
+    A --> TC
+    TC --> TP
+    TC --> TB
+    
+    A --> AD
+    A --> AS
+    A --> AC
+    
+    PO --> LLM
+    PG --> LLM
+    PA --> LLM
+    PL --> LLM
+    
+    MR --> DB
+    MV --> DB
+    MS --> DB
+    
+    O --> MM
 ```
 
-### Core Components
+### Core Subsystems
 
-1. **Agent System**:
-   - Agent lifecycle management
-   - Tool registration and discovery
-   - Context handling and state management
-   - BaseAgent class that wraps Google ADK's Agent/LlmAgent
-   - Decorator-based configuration and setup
+#### 1. Agent System
 
-2. **Provider Adapters**:
-   - Unified interface to different LLM providers
-   - Request formatting and response parsing
-   - Rate limiting and error handling
-   - Model-specific optimizations
+The Agent system is the central component that manages the lifecycle of agents, handles tool registration, manages context, and orchestrates the interaction between the user, LLM, and tools.
 
-3. **Memory System**:
-   - Conversation history storage
-   - Pluggable backend support
-   - Memory retrieval and vectorization
-   - Simple key-value interface (get/set)
-   - Optional integration with Redis or Firestore
+```mermaid
+classDiagram
+    class BaseAgent {
+        +model: ModelProvider
+        +tool_manager: ToolManager
+        +plugin_manager: PluginManager
+        +config: Configuration
+        +async run(prompt: str): str
+        +async stream(prompt: str): AsyncGenerator
+        +register_tool(tool: Callable)
+        +_prepare_context(context: Context)
+        +_handle_response(response: str)
+        +_tool_executor(tool_name: str, args: dict)
+    }
+    
+    class Agent {
+        <<decorator>>
+        +model: str
+        +provider: str
+        +description: str
+        +streaming: bool
+    }
+    
+    class tool {
+        <<decorator>>
+        +name: str
+        +description: str
+        +required: List[str]
+        +cache_ttl: int
+        +retry: int
+    }
+    
+    BaseAgent <|-- UserAgent
+    Agent --> UserAgent
+    tool --> UserMethod
+```
 
-4. **Workflow Engine**:
-   - Multi-step workflow orchestration
-   - Parallel and sequential execution
-   - Error handling and recovery
-   - Agent-to-Agent (A2A) communication
+#### 2. Provider System
 
-5. **HTTP API System**:
-   - RESTful endpoints for agent interaction
-   - WebSocket support for streaming
-   - Authentication and rate limiting
-   - Auto-generated OpenAPI documentation
-   - FastAPI integration for high performance
+The Provider system abstracts different LLM backends behind a unified interface, handling the specific details of each provider's API.
 
-6. **Configuration Management**:
-   - Centralized configuration system
-   - Support for YAML, environment variables, and Pydantic settings
-   - Configuration for models, memory backends, and logging
+```mermaid
+classDiagram
+    class ModelProviderABC {
+        <<abstract>>
+        +async generate(prompt: str, **kwargs): str
+        +async stream(prompt: str, **kwargs): AsyncGenerator
+        +count_tokens(text: str): int
+        +get_usage(response): TokenUsage
+        +health_check(): bool
+    }
+    
+    ModelProviderABC <|-- OpenAIProvider
+    ModelProviderABC <|-- GeminiProvider
+    ModelProviderABC <|-- AnthropicProvider
+    ModelProviderABC <|-- LiteLLMProvider
+    ModelProviderABC <|-- CustomProvider
+    
+    class ProviderFactory {
+        +create(provider: str, model: str, **kwargs): ModelProviderABC
+        +register(name: str, provider_class: Type)
+    }
+    
+    ProviderFactory --> ModelProviderABC
+```
 
-7. **CLI and Developer Tools**:
-   - Project scaffolding and initialization
-   - Development server with hot-reload
-   - Testing and debugging utilities
+#### 3. Memory System
 
-## Supported Agent Types
+The Memory system manages conversation history and context, with pluggable backends for different storage options.
 
-FastADK is designed to be domain-agnostic, but provides specialized support for these common agent types:
+```mermaid
+classDiagram
+    class MemoryBackend {
+        <<abstract>>
+        +async get(key: str): Any
+        +async set(key: str, value: Any)
+        +async delete(key: str)
+        +async exists(key: str): bool
+        +async list_keys(pattern: str): List[str]
+    }
+    
+    MemoryBackend <|-- InMemoryBackend
+    MemoryBackend <|-- RedisBackend
+    MemoryBackend <|-- SQLBackend
+    MemoryBackend <|-- VectorMemoryBackend
+    
+    class Context {
+        +messages: List[Message]
+        +add(role: str, content: str)
+        +add_system(content: str)
+        +add_user(content: str)
+        +add_assistant(content: str)
+        +to_string(): str
+        +clear()
+    }
+    
+    class ContextPolicy {
+        <<abstract>>
+        +async apply(history: List[Message]): List[Message]
+    }
+    
+    ContextPolicy <|-- MostRecentPolicy
+    ContextPolicy <|-- SummarizeOlderPolicy
+    ContextPolicy <|-- HybridVectorRetrievalPolicy
+    
+    Context --> ContextPolicy
+```
 
-1. **Task-Completion Agents**:
-   - Take a specific task and produce a result, like summarizing documents or processing orders
-   - Often operate in one-shot or a few steps
-   - Benefit from FastADK's structured input/output validation
-   - Examples: document summarizer, code generator, order processor
+#### 4. Workflow System
 
-2. **Tool-Using Agents**:
-   - Leverage external tools and APIs to complete complex tasks
-   - Use LLM reasoning to decide which tools to call and when
-   - Benefit from FastADK's simple `@tool` decorator for registering functions
-   - Examples: research assistant, data analyzer, API orchestrator
+The Workflow system enables the orchestration of multiple steps or agents to solve complex problems.
 
-3. **Conversational Agents**:
-   - Maintain context over multiple turns to provide a coherent dialogue experience
-   - Benefit from FastADK's built-in memory management
-   - Can have personas, goals, and specialized knowledge
-   - Examples: customer support bot, personal assistant, FAQ system
+```mermaid
+classDiagram
+    class Workflow {
+        +steps: List[Step]
+        +name: str
+        +async execute(input: Any): Any
+        +static sequence(*steps): Workflow
+        +static parallel(*steps): Workflow
+        +static conditional(condition, if_true, if_false): Workflow
+    }
+    
+    class Step {
+        <<abstract>>
+        +name: str
+        +async execute(input: Any): Any
+    }
+    
+    Step <|-- FunctionStep
+    Step <|-- AgentStep
+    Step <|-- TransformStep
+    Step <|-- WorkflowStep
+    
+    Workflow o-- Step
+    WorkflowStep o-- Workflow
+```
 
-4. **Multi-Agent Systems**:
-   - Orchestrate multiple specialized agents to collaborate on complex tasks
-   - Use FastADK's workflow engine for coordination
-   - Can leverage Agent-to-Agent (A2A) communication
-   - Examples: research teams, complex business workflows, hierarchical task systems
+#### 5. Token and Cost Tracking
 
-## User Workflow
+The Token system tracks token usage and estimates costs across all LLM interactions.
 
-The typical workflow for developing and deploying agents with FastADK follows these steps:
+```mermaid
+classDiagram
+    class TokenUsage {
+        +prompt_tokens: int
+        +completion_tokens: int
+        +total_tokens: int
+        +model: str
+        +provider: str
+    }
+    
+    class CostCalculator {
+        +static calculate(usage: TokenUsage, price_per_1k: Tuple = None): float
+    }
+    
+    class TokenBudget {
+        +max_tokens_per_query: int
+        +max_tokens_per_session: int
+        +max_cost_per_query: float
+        +max_cost_per_session: float
+        +current_session_tokens: int
+        +current_session_cost: float
+        +on_exceed: str
+        +check(usage: TokenUsage): bool
+    }
+    
+    TokenUsage --> CostCalculator
+    TokenUsage --> TokenBudget
+```
+
+#### 6. Observability System
+
+The Observability system provides visibility into agent behavior through logging, metrics, and tracing.
+
+```mermaid
+classDiagram
+    class Logger {
+        +debug(msg: str, **kwargs)
+        +info(msg: str, **kwargs)
+        +warning(msg: str, **kwargs)
+        +error(msg: str, **kwargs)
+        +configure(level: str, format: str)
+    }
+    
+    class Metrics {
+        +counter(name: str, description: str): Counter
+        +gauge(name: str, description: str): Gauge
+        +histogram(name: str, description: str): Histogram
+        +configure(enable: bool, port: int)
+    }
+    
+    class Tracing {
+        +start_span(name: str): Span
+        +add_event(name: str, **attributes)
+        +configure(enable: bool, exporter: str)
+    }
+    
+    class RedactionFilter {
+        +patterns: List[str]
+        +redact(text: str): str
+        +add_pattern(pattern: str)
+    }
+    
+    Logger --> RedactionFilter
+```
+
+#### 7. Plugin System
+
+The Plugin system enables extensibility through dynamically loaded plugins.
+
+```mermaid
+classDiagram
+    class PluginManager {
+        +plugins: Dict[str, Plugin]
+        +discover_plugins()
+        +register_plugin(plugin: Plugin)
+        +get_plugin(name: str): Plugin
+        +async emit_event(event: str, data: Dict)
+    }
+    
+    class Plugin {
+        <<abstract>>
+        +name: str
+        +version: str
+        +initialize()
+        +async on_event(event: str, data: Dict)
+    }
+    
+    PluginManager o-- Plugin
+    Plugin <|-- ModelProviderPlugin
+    Plugin <|-- MemoryBackendPlugin
+    Plugin <|-- ToolsPlugin
+    Plugin <|-- AdapterPlugin
+```
+
+## User Workflows
+
+### Basic Agent Workflow
 
 ```mermaid
 sequenceDiagram
-    participant D as Developer
-    participant F as FastADK
-    participant L as LLM Provider
-    participant A as Application
-
-    D->>F: Define Agent Class
-    D->>F: Implement Tools
-    D->>F: Configure Provider
-    F->>F: Register Agent
-    D->>F: Run or Deploy
-    A->>F: Send Request
-    F->>L: Format & Send Prompt
-    L->>F: Return Response
-    F->>F: Process Response
-    F->>A: Return Result
+    participant User
+    participant Agent
+    participant Model
+    participant Tools
+    
+    User->>Agent: run("What's the weather in London?")
+    Agent->>Agent: Prepare context
+    Agent->>Model: Generate response
+    Model-->>Agent: Structured response with tool call
+    Agent->>Tools: Execute get_weather("London")
+    Tools-->>Agent: Weather data
+    Agent->>Model: Generate final response with tool results
+    Model-->>Agent: Human-readable response
+    Agent-->>User: "The weather in London is currently sunny with 22°C"
 ```
 
-### Development Workflow
+### Memory and Context Management
 
-1. **Define Agents**:
+```mermaid
+sequenceDiagram
+    participant User
+    participant Agent
+    participant ContextPolicy
+    participant Memory
+    participant Model
+    
+    User->>Agent: run("What did I ask earlier?")
+    Agent->>Memory: get_conversation_history()
+    Memory-->>Agent: Previous messages
+    Agent->>ContextPolicy: apply(history)
+    ContextPolicy->>ContextPolicy: Filter/transform messages
+    alt Too many tokens
+        ContextPolicy->>Model: Summarize older messages
+        Model-->>ContextPolicy: Summary
+    end
+    ContextPolicy-->>Agent: Optimized context
+    Agent->>Model: Generate with optimized context
+    Model-->>Agent: Response referencing previous interaction
+    Agent->>Memory: store_message(response)
+    Agent-->>User: "You asked about the weather in London"
+```
 
-   ```python
-   @Agent(model="gemini-1.5-pro", description="Math helper")
-   class MathAgent(BaseAgent):
-       # Agent implementation
-   ```
+### Multi-Agent Workflow
 
-2. **Implement Tools**:
+```mermaid
+sequenceDiagram
+    participant User
+    participant Orchestrator
+    participant ResearchAgent
+    participant AnalysisAgent
+    participant SummaryAgent
+    
+    User->>Orchestrator: execute("Research renewable energy trends")
+    Orchestrator->>ResearchAgent: run("Find recent data on renewable energy")
+    ResearchAgent-->>Orchestrator: Research findings
+    Orchestrator->>AnalysisAgent: run("Analyze these findings" + research)
+    AnalysisAgent-->>Orchestrator: Analysis results
+    Orchestrator->>SummaryAgent: run("Summarize research and analysis")
+    SummaryAgent-->>Orchestrator: Final summary
+    Orchestrator-->>User: Comprehensive report
+```
 
-   ```python
-   @tool
-   def add(self, a: float, b: float) -> float:
-       """Add two numbers together."""
-       return a + b
-   ```
+### HTTP API Workflow
 
-3. **Configure and Test**:
+```mermaid
+sequenceDiagram
+    participant Client
+    participant FastAPI
+    participant Router
+    participant AgentRegistry
+    participant Agent
+    
+    Client->>FastAPI: POST /api/agents/weather-agent/run
+    FastAPI->>Router: route_request()
+    Router->>AgentRegistry: get_agent("weather-agent")
+    AgentRegistry-->>Router: WeatherAgent instance
+    Router->>Agent: run(request.prompt)
+    Agent-->>Router: Response
+    Router-->>FastAPI: JSON response
+    FastAPI-->>Client: 200 OK with agent response
+```
 
-   ```python
-   agent = MathAgent()
-   result = await agent.run("Calculate 25 + 17")
-   ```
+## Implementation Example Patterns
 
-4. **Deploy**:
-
-   ```python
-   # app.py
-   from fastadk import create_app, registry
-   
-   registry.register(MathAgent)
-   app = create_app()
-   ```
-
-   ```bash
-   # Run with UV and uvicorn
-   uv run -m uvicorn app:app --reload
-   ```
-
-## Usage Instructions
-
-### 1. Creating a Basic Agent
+### Agent Definition
 
 ```python
 from fastadk import Agent, BaseAgent, tool
+from typing import Dict, List
 
 @Agent(
     model="gemini-1.5-pro",
-    description="A helpful assistant for weather information",
-    provider="gemini"
+    provider="gemini",
+    description="Assistant that helps with restaurant recommendations"
 )
-class WeatherAgent(BaseAgent):
+class RestaurantAgent(BaseAgent):
+    def __init__(self):
+        super().__init__()
+        # Additional initialization
+        self.preferences = {}
+    
     @tool
-    def get_weather(self, city: str) -> dict:
-        """Get current weather for a city."""
+    def search_restaurants(self, cuisine: str, location: str, price_range: str = "moderate") -> List[Dict]:
+        """
+        Search for restaurants based on criteria.
+        
+        Args:
+            cuisine: Type of food (e.g., Italian, Japanese, Indian)
+            location: City or neighborhood
+            price_range: Budget level (cheap, moderate, expensive)
+            
+        Returns:
+            List of matching restaurants with details
+        """
+        # Implementation details...
+        return [
+            {
+                "name": "Sample Restaurant",
+                "cuisine": cuisine,
+                "location": location,
+                "price_range": price_range,
+                "rating": 4.5
+            }
+        ]
+    
+    @tool
+    def get_restaurant_details(self, restaurant_id: str) -> Dict:
+        """Get detailed information about a specific restaurant."""
         # Implementation details...
         return {
-            "city": city,
-            "temperature": "22°C",
-            "condition": "sunny"
+            "id": restaurant_id,
+            "name": "Sample Restaurant",
+            "description": "A lovely place to dine",
+            "opening_hours": "9 AM - 10 PM",
+            "phone": "+1-234-567-8900"
         }
     
     @tool
-    def get_forecast(self, city: str, days: int = 3) -> list:
-        """Get weather forecast for a city."""
-        # Implementation details...
-        return [
-            {"day": 1, "temp": "24°C", "condition": "sunny"},
-            {"day": 2, "temp": "22°C", "condition": "partly cloudy"},
-            {"day": 3, "temp": "19°C", "condition": "rainy"}
-        ]
-
-# Using the agent
-async def main():
-    agent = WeatherAgent()
-    response = await agent.run("What's the weather like in London?")
-    print(response)
-
-# Run with: uv run weather_agent.py
+    def save_preference(self, cuisine: str, rating: int) -> str:
+        """Save user food preference for future recommendations."""
+        self.preferences[cuisine] = rating
+        return f"Saved preference for {cuisine} with rating {rating}"
 ```
 
-### 2. Using Memory
+### Memory Implementation
 
 ```python
-from fastadk import Agent, BaseAgent, tool
-from fastadk.memory import InMemoryBackend
+from fastadk import Agent, BaseAgent
+from fastadk.memory import VectorMemoryBackend
+from typing import List, Dict, Any
 
 @Agent(model="gemini-1.5-pro")
-class AssistantWithMemory(BaseAgent):
+class KnowledgeAgent(BaseAgent):
     def __init__(self):
         super().__init__()
-        self.memory = InMemoryBackend()
+        # Initialize vector memory with embeddings
+        self.memory = VectorMemoryBackend(
+            embedding_model="text-embedding-3-small",
+            embedding_provider="openai",
+            dimension=512,
+            similarity_threshold=0.75
+        )
     
-    async def _remember_entity(self, entity_type: str, name: str) -> None:
-        """Store an entity in memory."""
-        entities = await self.memory.get("entities") or []
-        if name not in entities:
-            entities.append({"type": entity_type, "name": name})
-            await self.memory.set("entities", entities)
+    async def add_to_knowledge_base(self, text: str, metadata: Dict[str, Any] = None) -> str:
+        """Add information to the agent's knowledge base."""
+        # Store text in vector memory with metadata
+        doc_id = await self.memory.store_embedding(
+            text=text,
+            metadata=metadata or {}
+        )
+        return f"Added to knowledge base with ID: {doc_id}"
+    
+    async def retrieve_relevant_knowledge(self, query: str, limit: int = 5) -> List[Dict]:
+        """Retrieve relevant information from the knowledge base."""
+        # Get semantically similar documents
+        results = await self.memory.search_embeddings(
+            query=query,
+            limit=limit
+        )
+        return results
     
     @tool
-    async def save_favorite_color(self, color: str) -> str:
-        """Save a user's favorite color."""
-        await self.memory.set("favorite_color", color)
-        return f"I'll remember that your favorite color is {color}."
-    
-    @tool
-    async def get_favorite_color(self) -> str:
-        """Retrieve the user's favorite color."""
-        color = await self.memory.get("favorite_color")
-        if color:
-            return f"Your favorite color is {color}."
-        else:
-            return "I don't know your favorite color yet."
+    async def answer_from_knowledge_base(self, question: str) -> str:
+        """Answer questions using the stored knowledge base."""
+        # Get relevant context
+        context = await self.retrieve_relevant_knowledge(question)
+        
+        # Prepare prompt with context
+        prompt = f"Based on the following information:\n\n"
+        for item in context:
+            prompt += f"- {item['text']}\n\n"
+        prompt += f"Answer this question: {question}"
+        
+        # Generate response using the model with context
+        response = await self.model.generate(prompt)
+        
+        return response
 ```
 
-### 3. Creating an HTTP API
+### Workflow Orchestration
 
 ```python
-# agent.py
-from fastadk import Agent, BaseAgent, tool, registry, create_app
+from fastadk.core.workflow import Workflow, step, conditional, transform
+from typing import Dict, List, Any
+
+# Define workflow steps as functions with the @step decorator
+@step(name="Data Collection")
+async def collect_data(sources: List[str]) -> Dict[str, Any]:
+    """Collect data from multiple sources."""
+    results = {}
+    for source in sources:
+        # Implementation details...
+        results[source] = {"status": "collected", "data": [...]}
+    return results
+
+@step(name="Data Validation")
+async def validate_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate collected data for completeness and accuracy."""
+    validation_results = {}
+    for source, content in data.items():
+        # Validation logic...
+        is_valid = True  # Example validation
+        validation_results[source] = {
+            "is_valid": is_valid,
+            "data": content["data"] if is_valid else None,
+            "errors": [] if is_valid else ["Data incomplete"]
+        }
+    return validation_results
+
+@step(name="Data Processing")
+async def process_data(validated_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Process only the validated data."""
+    processed_results = {}
+    for source, content in validated_data.items():
+        if content["is_valid"]:
+            # Processing logic...
+            processed_results[source] = {
+                "processed": True,
+                "results": [...]  # Processed data
+            }
+    return processed_results
+
+@transform(name="Report Generation")
+def generate_report(processing_results: Dict[str, Any]) -> str:
+    """Generate a final report from processing results."""
+    report = "Data Processing Report\n=====================\n\n"
+    for source, result in processing_results.items():
+        report += f"Source: {source}\n"
+        report += f"Status: {'Processed' if result.get('processed') else 'Failed'}\n"
+        report += f"Results: {len(result.get('results', []))} items\n\n"
+    return report
+
+# Create a workflow that combines these steps
+data_workflow = Workflow.sequence(
+    collect_data,
+    validate_data,
+    process_data,
+    generate_report,
+    name="Data Pipeline Workflow"
+)
+
+# Example usage
+async def run_workflow():
+    sources = ["database", "api", "files"]
+    result = await data_workflow.execute(sources)
+    print(result)
+```
+
+### Observability Implementation
+
+```python
+from fastadk import Agent, BaseAgent
+from fastadk.observability import configure_logging, configure_metrics, configure_tracing
+from fastadk.observability.redaction import RedactionFilter
+
+# Configure comprehensive observability
+configure_logging(
+    level="INFO",
+    format="json",
+    service_name="recommendation-agent",
+    log_file="agent.log"
+)
+
+configure_metrics(
+    enable=True,
+    port=9090,
+    service_name="recommendation-agent"
+)
+
+configure_tracing(
+    enable=True,
+    exporter="jaeger",
+    endpoint="http://jaeger:14268/api/traces",
+    service_name="recommendation-agent"
+)
+
+# Configure redaction for sensitive data
+redaction = RedactionFilter(patterns=[
+    r"(api_key|key|token)=([a-zA-Z0-9-_.]+)",
+    r"(password|secret)=([^&\s]+)",
+    r"(credit_card|card_number)=(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})"
+])
 
 @Agent(model="gemini-1.5-pro")
-class CalculatorAgent(BaseAgent):
-    @tool
-    def add(self, a: float, b: float) -> float:
-        """Add two numbers."""
-        return a + b
+class ObservableAgent(BaseAgent):
+    async def run(self, prompt: str) -> str:
+        # Use tracing to track the lifecycle of the request
+        from fastadk.observability.tracing import get_tracer
+        tracer = get_tracer()
+        
+        with tracer.start_as_current_span("agent_run") as span:
+            # Add attributes to the span
+            span.set_attribute("prompt.length", len(prompt))
+            span.set_attribute("agent.model", self.model_name)
+            
+            # Add redaction for sensitive data
+            safe_prompt = redaction.redact(prompt)
+            span.set_attribute("prompt.redacted", safe_prompt)
+            
+            # Record metrics
+            from fastadk.observability.metrics import counter, histogram
+            counter("agent.requests_total", "Total number of agent requests").inc()
+            
+            # Execute with timing
+            with histogram("agent.execution_time", "Time to execute agent request").time():
+                try:
+                    response = await super().run(prompt)
+                    
+                    # Record success
+                    counter("agent.success_total", "Successful agent requests").inc()
+                    span.set_attribute("response.status", "success")
+                    
+                    # Log information
+                    from fastadk.observability.logger import get_logger
+                    logger = get_logger()
+                    logger.info(
+                        "Agent request successful",
+                        extra={
+                            "prompt_length": len(prompt),
+                            "response_length": len(response),
+                            "tools_used": self.tools_used,
+                            "token_count": self.last_run_token_usage.total_tokens,
+                        }
+                    )
+                    
+                    return response
+                except Exception as e:
+                    # Record failure
+                    counter("agent.error_total", "Failed agent requests").inc()
+                    span.set_attribute("response.status", "error")
+                    span.set_attribute("error.type", e.__class__.__name__)
+                    span.set_attribute("error.message", str(e))
+                    
+                    # Log error
+                    from fastadk.observability.logger import get_logger
+                    logger = get_logger()
+                    logger.error(
+                        f"Agent request failed: {str(e)}",
+                        exc_info=True,
+                        extra={"prompt_length": len(prompt)}
+                    )
+                    
+                    raise
+```
+
+## Configuration System
+
+FastADK uses a hierarchical configuration system that combines:
+
+1. Default values from the codebase
+2. Configuration files (YAML/TOML)
+3. Environment variables
+4. Runtime overrides
+
+This design enables flexible configuration across different environments, from development to production.
+
+```mermaid
+graph TD
+    A[Default Configuration] --> E[Final Configuration]
+    B[Config Files] --> E
+    C[Environment Variables] --> E
+    D[Runtime Overrides] --> E
     
-    @tool
-    def subtract(self, a: float, b: float) -> float:
-        """Subtract b from a."""
-        return a - b
-
-# Register the agent
-registry.register(CalculatorAgent)
-
-# Create a FastAPI application
-app = create_app()
-
-# Run with: uv run -m uvicorn agent:app --reload
+    subgraph "Priority (Increasing)"
+        A
+        B
+        C
+        D
+    end
 ```
 
-### 4. Creating Workflows
+### Configuration Example
 
-```python
-from fastadk.core.workflow import Workflow, step, transform
+```yaml
+# fastadk.yaml - Base configuration
+environment: development
+log_level: info
 
-@step(name="Data Loader")
-async def load_data(source: str) -> dict:
-    """Load data from a source."""
-    # Implementation...
-    return {"source": source, "data": [1, 2, 3]}
-
-@step(name="Data Processor")
-async def process_data(data: dict) -> dict:
-    """Process the loaded data."""
-    # Implementation...
-    result = [x * 2 for x in data["data"]]
-    return {"source": data["source"], "processed": result}
-
-@transform(name="Formatter")
-def format_result(data: dict) -> str:
-    """Format the results for presentation."""
-    return f"Data from {data['source']}: {data['processed']}"
-
-# Create and run a workflow
-workflow = Workflow.sequence(
-    load_data,
-    process_data,
-    format_result,
-    name="Simple Processing Pipeline"
-)
-
-result = await workflow.execute("database")
+model:
+  provider: gemini
+  model_name: gemini-1.5-pro
+  
+memory:
+  backend_type: inmemory
+  ttl_seconds: 3600
 ```
 
-## Advanced Features
+```yaml
+# fastadk.production.yaml - Production overrides
+environment: production
+log_level: warning
 
-### 1. Tool Configuration
+model:
+  provider: openai
+  model_name: gpt-4
 
-Tools can be configured with additional parameters:
-
-```python
-@tool(
-    cache_ttl=300,           # Cache results for 5 minutes
-    retry=3,                 # Retry up to 3 times on failure
-    timeout=10,              # Timeout after 10 seconds
-    validate_return=True     # Validate return value against type hints
-)
-async def get_stock_price(symbol: str) -> float:
-    """Get the current stock price."""
-    # Implementation...
+memory:
+  backend_type: redis
+  connection_string: ${REDIS_URL}
 ```
 
-### 2. Streaming Responses
+Environment variables can override any configuration:
 
-Support for streaming responses:
-
-```python
-@Agent(model="gemini-1.5-pro", streaming=True)
-class StreamingAgent(BaseAgent):
-    # Agent implementation...
-
-# Using streaming
-async for chunk in agent.stream("Tell me about the solar system"):
-    print(chunk, end="", flush=True)
+```bash
+export FASTADK_LOG_LEVEL=debug
+export FASTADK_MODEL__PROVIDER=anthropic
+export FASTADK_MODEL__MODEL_NAME=claude-3-opus-20240229
 ```
 
-### 3. Multi-Provider Support
+## Integration Options
 
-Switch between different LLM providers:
+FastADK offers several integration patterns for different environments:
+
+### 1. Standalone Scripts
+
+For simple scripts, import and use agents directly:
 
 ```python
-# Gemini
-@Agent(model="gemini-1.5-pro", provider="gemini")
-class GeminiAgent(BaseAgent):
-    # Agent implementation...
+from myagent import WeatherAgent
 
-# OpenAI
-@Agent(model="gpt-4", provider="openai")
-class OpenAIAgent(BaseAgent):
-    # Agent implementation...
+async def main():
+    agent = WeatherAgent()
+    result = await agent.run("What's the weather in Paris?")
+    print(result)
 
-# Anthropic
-@Agent(model="claude-3-opus-20240229", provider="anthropic")
-class AnthropicAgent(BaseAgent):
-    # Agent implementation...
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
 ```
 
-## Integration and Deployment
+### 2. Web Applications
 
-FastADK agents can be easily integrated into various environments:
-
-### Web Applications
-
-FastADK agents can be exposed as REST APIs for integration with web applications. The framework generates OpenAPI documentation automatically, making it easy to integrate with frontend frameworks or other backend services.
+For web services, use the built-in FastAPI integration:
 
 ```python
-# Create a FastAPI application with registered agents
+from fastapi import FastAPI
 from fastadk import create_app, registry
-from myagents import WeatherAgent, TaskAgent
+from myagents import WeatherAgent, TranslationAgent
 
+# Register agents
 registry.register(WeatherAgent)
-registry.register(TaskAgent)
+registry.register(TranslationAgent)
 
+# Create FastAPI app with agents router
 app = create_app()
 
-# Run with: uv run -m uvicorn app:app --reload
+# Add custom routes
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to FastADK API"}
 ```
 
-### CLI Applications
+### 3. Chatbots
 
-For command-line tools or data processing pipelines, FastADK agents can be run directly from Python scripts or via the FastADK CLI.
+For chat platforms, use the adapter interfaces:
 
-```shell
-# Run an agent in interactive mode
-agent run myagent.py --interactive
+```python
+from fastadk.adapters.discord import DiscordAdapter
+from myagent import AssistantAgent
 
-# Run with development hot-reload
-agent dev myagent.py
+# Connect agent to Discord
+adapter = DiscordAdapter(
+    agent=AssistantAgent(),
+    bot_token="DISCORD_BOT_TOKEN",
+    guild_ids=["123456789"],
+    channels=["general", "help"]
+)
 
-# Test a specific tool in isolation
-agent test-tool myagent.WeatherAgent.get_weather
+# Start the bot
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(adapter.start())
 ```
 
-### Cloud Deployment
+### 4. Batch Processing
 
-FastADK agents can be deployed to various cloud platforms:
+For data processing workloads:
 
-- **Google Cloud Run**: Containerized deployment with automatic scaling
-- **Vertex AI Agent Engine**: Google's managed runtime for ADK agents
-- **AWS Lambda**: Serverless deployment for event-driven workloads
-- **Azure Functions**: Event-driven serverless computing
-- **Kubernetes**: For complex multi-agent systems with custom scaling requirements
+```python
+from fastadk.core.batch import BatchProcessor
+from myagent import DocumentProcessorAgent
 
-FastADK is designed to be stateless when needed, storing state in external services like Redis or Firestore, making it ideal for cloud deployments.
+# Create batch processor
+processor = BatchProcessor(
+    agent=DocumentProcessorAgent(),
+    max_concurrent=10,
+    timeout=300
+)
 
-## Benefits for Different User Types
+# Process batch of items
+async def process_documents():
+    documents = [
+        {"id": "doc1", "text": "Sample document 1"},
+        {"id": "doc2", "text": "Sample document 2"},
+        # ...more documents
+    ]
+    
+    results = await processor.process_batch(
+        items=documents,
+        process_fn=lambda doc: f"Process document {doc['id']}: {doc['text']}",
+        result_fn=lambda response, doc: {"id": doc["id"], "summary": response}
+    )
+    
+    return results
+```
 
-### For Startups
+## Best Practices
 
-- **Faster Time-to-Market**: Reduce development time by 80%+
-- **Lower Development Costs**: Fewer engineer-hours required
-- **Flexibility**: Easily switch between models as pricing and capabilities evolve
-- **Future-Proofing**: Architecture designed to adapt to new LLM capabilities
-- **Rapid Iteration**: Hot-reload development and testing utilities speed up the build-test cycle
+### 1. Agent Design
 
-### For Enterprise Teams
+- **Single Responsibility**: Each agent should have a clear, focused purpose
+- **Tool Granularity**: Create tools that do one thing well rather than monolithic tools
+- **Error Handling**: Include error handling in tools and agent lifecycle hooks
+- **Documentation**: Document tools thoroughly with clear descriptions and type hints
 
-- **Standardization**: Consistent patterns across agent implementations
-- **Governance**: Built-in error handling and monitoring
-- **Scalability**: From prototype to production with the same codebase
-- **Maintainability**: Clear separation of concerns and modular design
-- **Integration**: Easy connection to existing systems through HTTP APIs or direct embedding
+### 2. Performance Optimization
 
-### For Individual Developers
+- **Token Efficiency**: Minimize tokens by using targeted prompts and context
+- **Caching**: Use the caching system for repetitive operations
+- **Async Operations**: Use async where possible to improve throughput
+- **Batching**: Batch similar operations together
 
-- **Learning Curve**: Intuitive API based on familiar Python patterns
-- **Productivity**: Accomplish more with less code
-- **Focus on Value**: Spend time on business logic, not infrastructure
-- **Community**: Access to examples, extensions, and community support
-- **Familiar Experience**: Similar developer experience to FastAPI, making it easy to learn
+### 3. Testing Strategy
 
-## Design Philosophy
+- **Mock LLMs**: Use `MockModel` for deterministic testing
+- **Scenario Testing**: Create comprehensive test scenarios
+- **Integration Tests**: Test full agent workflows end-to-end
+- **Performance Benchmarks**: Monitor token usage and response times
 
-FastADK's design is guided by several key principles:
+### 4. Production Deployment
 
-1. **Developer Experience First**: Every feature is designed with developer productivity in mind, minimizing boilerplate and maximizing clarity.
+- **Observability**: Enable structured logging, metrics, and tracing
+- **Health Checks**: Implement health checks for agent services
+- **Rate Limiting**: Protect against excessive usage
+- **Monitoring**: Monitor token usage, costs, and performance
+- **CI/CD**: Automate testing and deployment
 
-2. **Pythonic and Declarative**: Using decorators, type hints, and clear class hierarchies that feel natural to Python developers.
+## Known Limitations and Future Roadmap
 
-3. **Sensible Defaults, Full Flexibility**: Providing good defaults for quick starts, while allowing full customization for advanced use cases.
+### Current Limitations
 
-4. **Clean Separation of Concerns**: Keeping agent logic separate from infrastructure concerns like HTTP serving or memory management.
+- **Tool Results Size**: Large tool results may exceed context windows
+- **Streaming Consistency**: Streaming behavior varies across providers
+- **Fine-Tuning Support**: Limited to certain providers and models
+- **Cross-Agent Communication**: Basic support for agent-to-agent communication
 
-5. **Escape Hatches to Raw ADK**: Always allowing direct access to the underlying ADK when needed for advanced use cases.
+### Roadmap
 
-6. **Progressive Disclosure**: Simple features are simple to use, while advanced features are available but don't complicate basic usage.
+1. **Enhanced Vector Memory**: More sophisticated retrieval algorithms
+2. **Agentic Loops**: Better support for recursive agent actions
+3. **Automated Testing**: AI-powered test generation
+4. **Fine-Tuning UI**: Visual interface for model customization
+5. **Multi-Modal Support**: Better handling of images, audio, and video
+6. **Autonomous Agents**: Long-running agents with planning capabilities
 
 ## Conclusion
 
 FastADK provides a powerful, flexible, and developer-friendly framework for building AI agents. By abstracting away the complexities of agent development, it allows developers to focus on creating value rather than writing boilerplate code.
 
-Whether you're building a simple chatbot, a complex multi-agent system, or integrating AI capabilities into an existing application, FastADK provides the tools and patterns to make your development process faster, more reliable, and more enjoyable.
+The 0.2.0 release represents a significant step forward in capabilities, with comprehensive token tracking, advanced memory management, improved scalability, enhanced extensibility, better developer experience, and robust observability.
 
-With its high-level abstractions built on Google's solid ADK foundation, FastADK brings the same kind of developer experience improvements to agent development that FastAPI brought to web development.
+Whether you're building a simple chatbot, a complex multi-agent system, or integrating AI capabilities into an existing application, FastADK provides the tools and patterns to make your development process faster, more reliable, and more enjoyable.
 
 ## Next Steps
 
 - [Installation Guide](getting-started/installation.md): Get started with FastADK
 - [Quick Start](getting-started/quick-start.md): Build your first agent
-- [Examples](examples/): Explore real-world examples
+- [Examples](../examples/): Explore real-world examples
 - [API Reference](api/): Detailed documentation of the API
+- [Cookbook](cookbook.md): Common patterns and recipes
