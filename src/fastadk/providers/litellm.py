@@ -176,9 +176,11 @@ class LiteLLMProvider(ModelProviderABC):
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,
-                finish_reason=getattr(response.choices[0], "finish_reason", "stop")
-                if response.choices
-                else "stop",
+                finish_reason=(
+                    getattr(response.choices[0], "finish_reason", "stop")
+                    if response.choices
+                    else "stop"
+                ),
                 provider_data={"raw_response": response},
             )
         except Exception as e:

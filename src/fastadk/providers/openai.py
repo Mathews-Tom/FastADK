@@ -154,6 +154,7 @@ class OpenAIProvider(ModelProviderABC):
         Raises:
             AgentError: If streaming fails
         """
+
         async def _stream_impl() -> AsyncGenerator[str, None]:
             if not self._initialized or not self._client:
                 raise AgentError("OpenAI provider not initialized")
@@ -277,7 +278,7 @@ class OpenAIProvider(ModelProviderABC):
                     input=texts,
                 )
             )
-            
+
             # Extract and return embeddings
             return [embedding.embedding for embedding in response.data]
         except Exception as e:
@@ -296,7 +297,7 @@ class OpenAIProvider(ModelProviderABC):
         try:
             # Try to use tiktoken if available
             import tiktoken
-            
+
             model = self._config.get("model", self._default_model)
             encoding = tiktoken.encoding_for_model(model)
             return len(encoding.encode(text))
@@ -334,10 +335,7 @@ class OpenAIProvider(ModelProviderABC):
             if role not in ["system", "user", "assistant"]:
                 # Default unknown roles to user
                 role = "user"
-                
-            openai_messages.append({
-                "role": role,
-                "content": msg.content
-            })
+
+            openai_messages.append({"role": role, "content": msg.content})
 
         return openai_messages

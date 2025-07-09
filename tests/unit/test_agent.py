@@ -10,6 +10,7 @@ import pytest
 from fastadk import Agent, BaseAgent, tool
 from fastadk.core.exceptions import ToolError
 from fastadk.providers.base import ModelStub
+
 # Import directly from utils to avoid the lazy loading in __init__.py
 from fastadk.testing.utils import AgentTest, MockModel
 

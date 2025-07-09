@@ -167,9 +167,11 @@ class WorkflowStep(Generic[T, U], ABC):
 
                 # Log the error and retry
                 logger.warning(
-                    "Step '%s' failed: %s. "
-                    "Retrying (%d/%d)...",
-                    self.name, str(e), self.retry - remaining_retries, self.retry
+                    "Step '%s' failed: %s. " "Retrying (%d/%d)...",
+                    self.name,
+                    str(e),
+                    self.retry - remaining_retries,
+                    self.retry,
                 )
                 # Small delay before retry
                 await asyncio.sleep(0.1 * (self.retry - remaining_retries))
@@ -695,7 +697,9 @@ class Workflow(Generic[T, U]):
 
             # Log success
             logger.info(
-                "Workflow '%s' completed successfully in %.2fs", self.name, execution_time
+                "Workflow '%s' completed successfully in %.2fs",
+                self.name,
+                execution_time,
             )
 
             # Record execution in history
@@ -710,7 +714,10 @@ class Workflow(Generic[T, U]):
 
             # Log failure
             logger.error(
-                "Workflow '%s' failed after %.2fs: %s", self.name, execution_time, str(e)
+                "Workflow '%s' failed after %.2fs: %s",
+                self.name,
+                execution_time,
+                str(e),
             )
 
             # Record execution in history
@@ -890,7 +897,9 @@ class Workflow(Generic[T, U]):
             return []
 
             logger.info(
-                "Running %d coroutines in parallel for workflow '%s'", len(coroutines), self.name
+                "Running %d coroutines in parallel for workflow '%s'",
+                len(coroutines),
+                self.name,
             )
 
         # Create tasks for all coroutines
@@ -913,7 +922,9 @@ class Workflow(Generic[T, U]):
                     task.cancel()
 
             logger.warning(
-                "Parallel execution in workflow '%s' timed out after %ss", self.name, timeout
+                "Parallel execution in workflow '%s' timed out after %ss",
+                self.name,
+                timeout,
             )
             raise
         except Exception as e:

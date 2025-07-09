@@ -149,6 +149,7 @@ class TestVectorMemoryBackend:
     @pytest.mark.asyncio
     async def test_set_and_search(self, vector_memory, monkeypatch):
         """Test setting values and searching."""
+
         # Mock the embedding provider to return deterministic embeddings
         async def mock_get_embedding(text):
             if "Python" in text:
@@ -171,7 +172,9 @@ class TestVectorMemoryBackend:
         # Verify results
         assert len(results) > 0
         # Python should be found since we're using deterministic embeddings
-        assert any("Python" in entry.data for entry in results if entry.data is not None)
+        assert any(
+            "Python" in entry.data for entry in results if entry.data is not None
+        )
 
     @pytest.mark.asyncio
     async def test_get_and_delete(self, vector_memory):

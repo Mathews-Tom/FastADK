@@ -127,7 +127,9 @@ def get_memory_backend(
                         **vector_options.get("store_options", {})
                     )
                 except (ImportError, AttributeError) as e:
-                    raise ImportError(f"Failed to import vector components: {str(e)}") from e
+                    raise ImportError(
+                        f"Failed to import vector components: {str(e)}"
+                    ) from e
             else:
                 # Fall back to mock provider
                 vector_store = InMemoryVectorStore()

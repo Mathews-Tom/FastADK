@@ -81,12 +81,12 @@ class TestRedactionFilter:
             r"(project[-_]id):?\s*([A-Za-z0-9-_]+)",
             r"(custom[-_]secret):?\s*([A-Za-z0-9-_]+)",
         ]
-        
+
         redaction = RedactionFilter(patterns=custom_patterns)
-        
+
         text = "project_id: abc-123, custom_secret: xyz-456"
         redacted = redaction.redact(text)
-        
+
         # Just check if the patterns are properly redacted
         assert "[REDACTED]" in redacted
         assert "project_id" in redacted

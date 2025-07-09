@@ -94,7 +94,8 @@ class BatchUtils:
 
         logger.info(
             "Processing %s items in parallel (max concurrency: %s)",
-            total_items, max_concurrency
+            total_items,
+            max_concurrency,
         )
 
         # Use a semaphore to limit concurrency
@@ -155,7 +156,9 @@ class BatchUtils:
 
         logger.info(
             "Batch processing completed: %s successful, %s failed in %.2fs",
-            result.success_count, result.failure_count, result.total_time
+            result.success_count,
+            result.failure_count,
+            result.total_time,
         )
 
         return result
@@ -197,7 +200,9 @@ class BatchUtils:
         batch_count = (total_items + batch_size - 1) // batch_size
         logger.info(
             "Processing %s items in %s batches of size %s",
-            total_items, batch_count, batch_size
+            total_items,
+            batch_count,
+            batch_size,
         )
 
         # Process each batch
@@ -208,7 +213,9 @@ class BatchUtils:
             try:
                 logger.info(
                     "Processing batch %s/%s with %s items",
-                    batch_num, batch_count, len(batch)
+                    batch_num,
+                    batch_count,
+                    len(batch),
                 )
 
                 # Handle both async and sync functions
@@ -220,10 +227,13 @@ class BatchUtils:
                     else:
                         batch_results = await process_func(batch)
                 else:
-                    batch_copy = batch.copy()  # Create a copy to avoid lambda binding issues
+                    batch_copy = (
+                        batch.copy()
+                    )  # Create a copy to avoid lambda binding issues
                     if timeout:
                         batch_results = await asyncio.wait_for(
-                            asyncio.to_thread(lambda b=batch_copy: process_func(b)), timeout
+                            asyncio.to_thread(lambda b=batch_copy: process_func(b)),
+                            timeout,
                         )
                     else:
                         batch_results = await asyncio.to_thread(
@@ -234,7 +244,9 @@ class BatchUtils:
                 if len(batch_results) != len(batch):
                     logger.warning(
                         "Batch %s returned %s results for %s inputs",
-                        batch_num, len(batch_results), len(batch)
+                        batch_num,
+                        len(batch_results),
+                        len(batch),
                     )
 
                 # Record successful results
@@ -261,7 +273,9 @@ class BatchUtils:
 
         logger.info(
             "Batch processing completed: %s successful, %s failed in %.2fs",
-            result.success_count, result.failure_count, result.total_time
+            result.success_count,
+            result.failure_count,
+            result.total_time,
         )
 
         return result
@@ -300,9 +314,11 @@ class BatchUtils:
 
             # Create coroutines for each item in the chunk
             coroutines = [
-                operation(item)
-                if asyncio.iscoroutinefunction(operation)
-                else asyncio.to_thread(operation, item)
+                (
+                    operation(item)
+                    if asyncio.iscoroutinefunction(operation)
+                    else asyncio.to_thread(operation, item)
+                )
                 for item in chunk
             ]
 
