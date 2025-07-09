@@ -231,19 +231,13 @@ async def analyze_finance(data: dict[str, Any]) -> dict[str, Any]:
         "recommendation": (
             "Strong buy"
             if change > 0 and price_trend > 1
-            else "Hold"
-            if -0.5 <= change <= 0.5
-            else "Sell"
-            if change < -1
-            else "Watch"
+            else "Hold" if -0.5 <= change <= 0.5 else "Sell" if change < -1 else "Watch"
         ),
         "price_trend": f"{price_trend:.2f}% over last {len(history)} days",
         "volatility": (
             "high"
             if volatility_factor > 2
-            else "medium"
-            if volatility_factor > 1
-            else "low"
+            else "medium" if volatility_factor > 1 else "low"
         ),
     }
 

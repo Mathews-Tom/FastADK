@@ -276,67 +276,71 @@ KNOWLEDGE_BASE = {
 
 class PrioritySupportContextPolicy(ContextPolicy):
     """Custom context policy that prioritizes recent support ticket information."""
-    
+
     def __init__(self, max_messages: int = 10, priority_keywords: List[str] = None):
         """
         Initialize the priority support context policy.
-        
+
         Args:
             max_messages: Maximum number of messages to keep in context
             priority_keywords: Keywords to prioritize in context
         """
         self.max_messages = max_messages
         self.priority_keywords = priority_keywords or [
-            "ticket", "issue", "problem", "error", "warranty", "refund"
+            "ticket",
+            "issue",
+            "problem",
+            "error",
+            "warranty",
+            "refund",
         ]
-    
+
     async def apply(self, history: List[Any]) -> List[Any]:
         """
         Apply the policy to the context.
-        
+
         Args:
             history: The current conversation history
-            
+
         Returns:
             Modified history with prioritized messages
         """
         if len(history) <= self.max_messages:
             return history
-        
+
         # Always keep the system message
         system_message = next((m for m in history if m.get("role") == "system"), None)
-        
+
         # Find messages containing priority keywords
         priority_messages = []
         for message in history:
             if message.get("role") == "system":
                 continue
-                
+
             content = message.get("content", "") or ""
             if any(keyword in content.lower() for keyword in self.priority_keywords):
                 priority_messages.append(message)
-        
+
         # Keep the most recent messages and priority messages
-        remaining_slots = self.max_messages - len(priority_messages) - (1 if system_message else 0)
+        remaining_slots = (
+            self.max_messages - len(priority_messages) - (1 if system_message else 0)
+        )
         recent_messages = history[-remaining_slots:] if remaining_slots > 0 else []
-        
+
         # Combine and deduplicate messages while preserving order
         new_messages = []
         if system_message:
             new_messages.append(system_message)
-            
+
         message_ids = set()
         for message in priority_messages + recent_messages:
             message_id = id(message)
             if message_id not in message_ids:
                 new_messages.append(message)
                 message_ids.add(message_id)
-        
+
         # Sort by timestamp if available, otherwise keep original order
-        return sorted(
-            new_messages,
-            key=lambda m: m.get("timestamp", id(m))
-        )
+        return sorted(new_messages, key=lambda m: m.get("timestamp", id(m)))
 
 
 class CustomerSupportAgent(BaseAgent):
@@ -441,9 +445,9 @@ class CustomerSupportAgent(BaseAgent):
                         "name": product["name"],
                         "price": f"${product['price']:.2f}",
                         "category": product["category"],
-                        "availability": "In Stock"
-                        if product["in_stock"]
-                        else "Out of Stock",
+                        "availability": (
+                            "In Stock" if product["in_stock"] else "Out of Stock"
+                        ),
                     }
                 )
 
@@ -751,9 +755,7 @@ class CustomerSupportAgent(BaseAgent):
         refund_status = (
             "within_30_days"
             if days_since_order <= 30
-            else "30_to_60_days"
-            if days_since_order <= 60
-            else "beyond_60_days"
+            else "30_to_60_days" if days_since_order <= 60 else "beyond_60_days"
         )
 
         # Calculate refund amount

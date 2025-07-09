@@ -292,9 +292,11 @@ class FinancialAssistant(BaseAgent):
 
                 tax_breakdown.append(
                     {
-                        "bracket": f"${previous_max:,.0f} to ${max_amount:,.0f}"
-                        if max_amount != float("inf")
-                        else f"Over ${previous_max:,.0f}",
+                        "bracket": (
+                            f"${previous_max:,.0f} to ${max_amount:,.0f}"
+                            if max_amount != float("inf")
+                            else f"Over ${previous_max:,.0f}"
+                        ),
                         "rate": f"{rate:.1%}",
                         "taxable_amount": round(taxable_in_bracket, 2),
                         "tax": round(tax_in_bracket, 2),

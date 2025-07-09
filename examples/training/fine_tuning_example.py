@@ -91,13 +91,15 @@ async def example_data_conversion():
         with open(vertex_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             for item in data:
-                print(f"- Example: '{item['input_text'][:50]}...' -> '{item['output_text'][:50]}...'")
+                print(
+                    f"- Example: '{item['input_text'][:50]}...' -> '{item['output_text'][:50]}...'"
+                )
 
 
 async def example_fine_tuning_job(run_actual_job=False):
     """
     Example demonstrating fine-tuning job creation and monitoring.
-    
+
     Args:
         run_actual_job: Set to True to actually create a fine-tuning job
                         (requires API key and will incur costs)
@@ -111,7 +113,9 @@ async def example_fine_tuning_job(run_actual_job=False):
     if FineTuningProvider.OPENAI in providers and run_actual_job:
         # Check if we have an OpenAI API key
         if not os.environ.get("OPENAI_API_KEY"):
-            print("Skipping actual job creation: OPENAI_API_KEY environment variable not set")
+            print(
+                "Skipping actual job creation: OPENAI_API_KEY environment variable not set"
+            )
             return
 
         # Create a temporary directory for our files
@@ -152,7 +156,9 @@ async def example_fine_tuning_job(run_actual_job=False):
 
             # In a real application, you would poll for job status
             print("\nTo check job status later, use:")
-            print(f"job = await default_fine_tuner.get_job('{job.job_id}', FineTuningProvider.OPENAI)")
+            print(
+                f"job = await default_fine_tuner.get_job('{job.job_id}', FineTuningProvider.OPENAI)"
+            )
             print("print(f'Job status: {job.status}')")
     else:
         print("Skipping actual job creation (run_actual_job=False)")
