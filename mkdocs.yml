@@ -1,14 +1,15 @@
 site_name: FastADK Documentation
-site_description: Developer-friendly framework on top of Google's Agent Development Kit
+site_description: Declarative, Provider-Agnostic AI Agents, from Prototype to Production in Minutes Resources
 site_url: https://fastadk.dev
-repo_url: https://github.com/aetherforge/fastadk
-repo_name: aetherforge/fastadk
+repo_url: https://github.com/Mathews-Tom/FastADK
+repo_name: Mathews-Tom/FastADK
 edit_uri: edit/main/docs/
 
 theme:
   name: material
-  logo: assets/logo.svg
-  favicon: assets/favicon.ico
+  logo: assets/FastADK-Icon.png
+  favicon: assets/FastADK-Favicon_32.svg
+  custom_dir: docs/overrides
   palette:
     - scheme: default
       primary: indigo
@@ -127,11 +128,13 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/aetherforge/fastadk
+      link: https://github.com/Mathews-Tom/FastADK
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/fastadk
     - icon: fontawesome/brands/discord
       link: https://discord.gg/fastadk
+  generator: false
+  homepage: https://fastadk.dev
 
 extra_css:
   - stylesheets/extra.css

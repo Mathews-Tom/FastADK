@@ -1,5 +1,7 @@
 # FastADK: The Developer-Friendly Framework for AI Agents
 
+![FastADK Banner](assets/FastADK-Banner.png)
+
 FastADK is an open-source framework that dramatically improves the developer experience when building AI agents with Google's Agent Development Kit (ADK).
 
 ## The FastADK Advantage
