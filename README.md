@@ -1,5 +1,7 @@
 # FastADK
 
+![FastADK Banner](docs)
+
 FastADK is an open‑source Python framework that makes building LLM-powered agents simple, efficient, and production-ready. It offers declarative APIs, comprehensive observability, and powerful scaling capabilities that enable developers to go from prototype to production with the same codebase.
 
 ## Features
