@@ -97,6 +97,17 @@ class MathAgent(BaseAgent):
 
 FastADK is an open-source project, and we welcome contributions of all kinds.
 
-- [GitHub](https://github.com/aetherforge/fastadk): Star us, fork us, contribute!
+- [GitHub](https://github.com/Mathews-Tom/FastADK): Star us, fork us, contribute!
 - [Discord](https://discord.gg/fastadk): Join our community for discussions
 - [Twitter](https://twitter.com/fastadk): Follow for updates
+
+## Feedback and Support
+
+We're always looking to improve FastADK based on your feedback! Here are some ways to get help or share your thoughts:
+
+- **[GitHub Discussions](https://github.com/Mathews-Tom/FastADK/discussions)**: Ask questions, share ideas, or showcase what you've built
+- **[GitHub Issues](https://github.com/Mathews-Tom/FastADK/issues)**: Report bugs or request features
+- **[Community Support](https://discord.gg/fastadk)**: Get help from the community in our Discord server
+- **[Email](mailto:team@fastadk.dev)**: Contact the core team directly
+
+Your feedback helps us prioritize features and improvements for future releases!
