@@ -103,10 +103,26 @@ nav:
     - testing:
       - Utils: api/testing/utils.md
   - Examples:
-    - Weather Agent: examples/weather-agent.md
-    - Travel Assistant: examples/travel-assistant.md
-    - Exception Handling: examples/exception-handling.md
-    - Workflow: examples/workflow.md
+    - Basic:
+      - Weather Agent: examples/basic/weather_agent.md
+      - Exception Handling: examples/basic/exception_demo.md
+      - Reasoning Demo: examples/basic/reasoning_demo.md
+      - Token Tracking: examples/basic/token_tracking_demo.md
+      - LiteLLM Integration: examples/basic/litellm_demo.md
+    - Advanced:
+      - Finance Assistant: examples/advanced/finance_assistant.md
+      - Customer Support: examples/advanced/customer_support.md
+      - Workflow Demo: examples/advanced/workflow_demo.md
+      - Travel Assistant: examples/advanced/travel_assistant.md
+    - UI:
+      - Streamlit Chat App: examples/ui/streamlit_chat_app.md
+    - API:
+      - HTTP Agent: examples/api/http_agent.md
+    - Patterns:
+      - Tool Patterns: examples/patterns/tool_patterns.md
+      - Configuration Patterns: examples/patterns/configuration_patterns.md
+    - Training:
+      - Fine Tuning: examples/training/fine_tuning_example.md
   - Contributing:
     - Guidelines: contributing/guidelines.md
     - Development Setup: contributing/development-setup.md
