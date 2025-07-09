@@ -33,7 +33,7 @@ class GeminiProvider(ModelProviderABC):
         """Initialize the Gemini provider."""
         self._model_instance = None
         self._config: Dict[str, Any] = {}
-        self._default_model = "gemini-1.5-pro"
+        self._default_model = "gemini-2.5-flash"
         self._initialized = False
 
     async def initialize(self, config: Dict[str, Any]) -> None:
@@ -245,7 +245,7 @@ class GeminiProvider(ModelProviderABC):
             List of supported model names
         """
         return [
-            "gemini-1.5-pro",
+            "gemini-2.5-flash",
             "gemini-1.5-flash",
             "gemini-1.0-pro",
             "gemini-1.0-pro-vision",

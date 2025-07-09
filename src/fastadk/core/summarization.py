@@ -123,7 +123,7 @@ class LLMSummarizer(SummarizationService):
             cache_key = self._generate_cache_key(entries, opts)
             cached_entry = await self.memory.get(f"summary:{cache_key}")
             if cached_entry and cached_entry.data:
-                logger.debug(f"Using cached summary for key {cache_key}")
+                logger.debug("Using cached summary for key %s", cache_key)
                 return ContextEntry(**cached_entry.data)
 
         # Convert entries to a format suitable for the LLM
@@ -160,7 +160,7 @@ class LLMSummarizer(SummarizationService):
 
             return summary_entry
         except Exception as e:
-            logger.error(f"Error generating summary: {str(e)}")
+            logger.error("Error generating summary: %s", str(e))
             # Fallback to a basic summary if LLM generation fails
             return self._create_fallback_summary(entries)
 

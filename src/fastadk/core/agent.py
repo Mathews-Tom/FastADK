@@ -7,6 +7,7 @@ including the BaseAgent class and @Agent and @tool decorators.
 
 # pylint: disable=attribute-defined-outside-init, redefined-outer-name
 
+import asyncio
 import functools
 import inspect
 import logging
@@ -23,6 +24,8 @@ from ..tokens.models import TokenBudget
 from ..tokens.utils import track_token_usage
 from .config import get_settings
 from .exceptions import AgentError, ConfigurationError
+from .plugin import AgentPlugin, Plugin, get_supported_plugins
+from .plugin_manager import default_plugin_manager
 from .tool_manager import ToolManager
 
 # Dictionary to store registered agent classes
@@ -148,7 +151,7 @@ class BaseAgent:
 
     # Class variables for storing agent metadata
     _tools: ClassVar[dict[str, ToolMetadata]] = {}
-    _model_name: ClassVar[str] = "gemini-1.5-pro"
+    _model_name: ClassVar[str] = "gemini-2.5-pro"
     _description: ClassVar[str] = "A FastADK agent"
     _provider: ClassVar[str] = "gemini"
     _system_message: ClassVar[str | None] = None
@@ -192,10 +195,23 @@ class BaseAgent:
         # Initialize model provider
         self._initialize_provider()
 
+        # Initialize plugins
+        self.plugin_manager = default_plugin_manager
+        self._active_plugins: Dict[str, Plugin] = {}
+        self._initialize_plugins()
+
         logger.info(
             "Initialized agent %s with %d tools",
             self.__class__.__name__,
             len(self.tool_manager.tools),
+        )
+
+        # Emit agent initialized event
+        asyncio.create_task(
+            self.plugin_manager.emit_event(
+                "agent:initialized",
+                {"agent": self, "agent_class": self.__class__.__name__},
+            )
         )
 
     def _initialize_tools(self) -> None:
@@ -222,6 +238,67 @@ class BaseAgent:
                         return_type=metadata.get("return_type", None),
                     )
                 )
+
+    def _initialize_plugins(self) -> None:
+        """Initialize plugins for this agent."""
+        # Check if the class supports plugins
+        supported_plugins = get_supported_plugins(self.__class__)
+
+        for plugin_class in supported_plugins:
+            try:
+                # Create plugin instance
+                plugin = plugin_class()
+
+                # Register the plugin
+                asyncio.create_task(
+                    self.plugin_manager.register_plugin_instance(plugin)
+                )
+
+                # Store for direct access
+                self._active_plugins[plugin.name] = plugin
+
+                # For agent-specific plugins, call the enhancement method
+                if isinstance(plugin, AgentPlugin):
+                    asyncio.create_task(plugin.on_agent_initialized(self))
+
+                logger.info(
+                    "Initialized plugin %s for agent %s",
+                    plugin.name,
+                    self.__class__.__name__,
+                )
+            except Exception as e:
+                logger.error(
+                    "Error initializing plugin %s: %s", plugin_class.__name__, str(e)
+                )
+
+    def register_plugin(self, plugin: Plugin) -> None:
+        """
+        Register a plugin with this agent.
+
+        Args:
+            plugin: The plugin to register
+        """
+        if plugin.name in self._active_plugins:
+            logger.warning(
+                "Plugin %s already registered with agent %s",
+                plugin.name,
+                self.__class__.__name__,
+            )
+            return
+
+        # Register with plugin manager
+        asyncio.create_task(self.plugin_manager.register_plugin_instance(plugin))
+
+        # Store for direct access
+        self._active_plugins[plugin.name] = plugin
+
+        # For agent-specific plugins, call the enhancement method
+        if isinstance(plugin, AgentPlugin):
+            asyncio.create_task(plugin.on_agent_initialized(self))
+
+        logger.info(
+            "Registered plugin %s with agent %s", plugin.name, self.__class__.__name__
+        )
 
     def _initialize_provider(self) -> None:
         """Initialize the model provider based on configuration."""
@@ -259,6 +336,17 @@ class BaseAgent:
         start_time = time.time()
         self.tool_manager.reset()  # Reset tools used for this run
 
+        # Emit agent:run_started event
+        await self.plugin_manager.emit_event(
+            "agent:run_started",
+            {
+                "agent": self,
+                "agent_class": self.__class__.__name__,
+                "input": user_input,
+                "timestamp": start_time,
+            },
+        )
+
         try:
             # Call the on_start hook
             self.on_start()
@@ -276,10 +364,39 @@ class BaseAgent:
             execution_time = time.time() - start_time
             logger.info("Agent execution completed in %.2fs", execution_time)
 
+            # Emit agent:run_completed event
+            await self.plugin_manager.emit_event(
+                "agent:run_completed",
+                {
+                    "agent": self,
+                    "agent_class": self.__class__.__name__,
+                    "input": user_input,
+                    "response": response,
+                    "duration": execution_time,
+                    "success": True,
+                    "timestamp": time.time(),
+                },
+            )
+
             return response
         except Exception as exc:
             # Call the on_error hook
             self.on_error(exc)
+
+            execution_time = time.time() - start_time
+
+            # Emit agent:run_error event
+            await self.plugin_manager.emit_event(
+                "agent:run_error",
+                {
+                    "agent": self,
+                    "agent_class": self.__class__.__name__,
+                    "input": user_input,
+                    "error": str(exc),
+                    "duration": execution_time,
+                    "timestamp": time.time(),
+                },
+            )
 
             logger.error("Error during agent execution: %s", str(exc), exc_info=True)
             raise AgentError(f"Failed to process input: {exc}") from exc
@@ -329,9 +446,42 @@ class BaseAgent:
                 stop_sequences=getattr(self.settings.model, "stop_sequences", None),
             )
 
+            # Emit LLM request event
+            start_time = time.time()
+            await self.plugin_manager.emit_event(
+                "llm:request",
+                {
+                    "agent": self,
+                    "agent_class": self.__class__.__name__,
+                    "model": self._model_name,
+                    "provider": self._provider,
+                    "temperature": options.temperature,
+                    "max_tokens": options.max_tokens,
+                    "messages": [msg.dict() for msg in messages],
+                    "timestamp": start_time,
+                },
+            )
+
             # Generate response
             result = await self.provider.generate(messages, options)
             response_text = result.text
+
+            # Emit LLM response event
+            duration = time.time() - start_time
+            await self.plugin_manager.emit_event(
+                "llm:response",
+                {
+                    "agent": self,
+                    "agent_class": self.__class__.__name__,
+                    "model": self._model_name,
+                    "provider": self._provider,
+                    "tokens": result.prompt_tokens + result.completion_tokens,
+                    "prompt_tokens": result.prompt_tokens,
+                    "completion_tokens": result.completion_tokens,
+                    "duration": duration,
+                    "timestamp": time.time(),
+                },
+            )
 
             # Track token usage if enabled
             if (
@@ -462,17 +612,54 @@ class BaseAgent:
         Returns:
             The result of the tool execution or a message indicating the tool was skipped
         """
-        # Delegate to the tool manager
-        result = await self.tool_manager.execute_tool(
-            tool_name, skip_if_response_contains, **kwargs
+        # Emit tool called event
+        start_time = time.time()
+        await self.plugin_manager.emit_event(
+            "tool:called",
+            {
+                "agent": self,
+                "agent_class": self.__class__.__name__,
+                "tool_name": tool_name,
+                "args": kwargs,
+                "timestamp": start_time,
+            },
         )
 
-        # For backward compatibility
-        if (
-            tool_name not in self.tools_used
-            and tool_name in self.tool_manager.tools_used
-        ):
-            self.tools_used.append(tool_name)
+        success = True
+        result = None
+
+        try:
+            # Delegate to the tool manager
+            result = await self.tool_manager.execute_tool(
+                tool_name, skip_if_response_contains, **kwargs
+            )
+
+            # For backward compatibility
+            if (
+                tool_name not in self.tools_used
+                and tool_name in self.tool_manager.tools_used
+            ):
+                self.tools_used.append(tool_name)
+        except Exception as e:
+            success = False
+            # Re-raise the exception
+            raise e
+        finally:
+            # Calculate duration
+            duration = time.time() - start_time
+
+            # Emit tool completed event
+            await self.plugin_manager.emit_event(
+                "tool:completed",
+                {
+                    "agent": self,
+                    "agent_class": self.__class__.__name__,
+                    "tool_name": tool_name,
+                    "duration": duration,
+                    "success": success,
+                    "timestamp": time.time(),
+                },
+            )
 
         return result
 
@@ -510,7 +697,7 @@ class BaseAgent:
 
 
 def Agent(
-    model: str = "gemini-1.5-pro",
+    model: str = "gemini-2.5-pro",
     description: str = "",
     provider: str = "gemini",
     **kwargs: Any,

@@ -80,7 +80,7 @@ class StreamingManager:
         await websocket.accept()
         self._active_connections[client_id] = websocket
         self._event_channels[client_id] = asyncio.Queue()
-        logger.info(f"Client {client_id} connected via WebSocket")
+        logger.info("Client %s connected via WebSocket", client_id)
 
         try:
             # Send welcome message
@@ -106,10 +106,10 @@ class StreamingManager:
                     }
                 )
         except WebSocketDisconnect:
-            logger.info(f"Client {client_id} disconnected")
+            logger.info("Client %s disconnected", client_id)
             self.disconnect(client_id)
         except Exception as e:
-            logger.error(f"Error in WebSocket connection: {str(e)}")
+            logger.error("Error in WebSocket connection: %s", str(e))
             self.disconnect(client_id)
 
     def disconnect(self, client_id: str) -> None:
@@ -121,7 +121,7 @@ class StreamingManager:
         """
         self._active_connections.pop(client_id, None)
         self._event_channels.pop(client_id, None)
-        logger.info(f"Client {client_id} removed from active connections")
+        logger.info("Client %s removed from active connections", client_id)
 
     async def send_event(self, client_id: str, event: StreamEvent) -> bool:
         """
@@ -305,7 +305,7 @@ async def generate_sse_events(
 
     except Exception as e:
         # Catch any unexpected errors
-        logger.exception(f"Error in SSE stream for agent {agent_name}: {str(e)}")
+        logger.exception("Error in SSE stream for agent %s: %s", agent_name, str(e))
         yield "event: error\n"
         yield f"data: {json.dumps({'message': f'Internal server error: {str(e)}'})}\n\n"
 

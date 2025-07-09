@@ -43,7 +43,7 @@ class TokenTrackingAgent(BaseAgent):
         results[self._model_name] = estimate_tokens_and_cost(text, self._model_name)
 
         # Add some other models for comparison
-        models = ["gpt-4", "claude-3-sonnet", "gemini-1.5-pro"]
+        models = ["gpt-4.1", "claude-3.5-sonnet", "gemini-2.5-flash"]
         for model in models:
             if model != self._model_name:
                 results[model] = estimate_tokens_and_cost(text, model)

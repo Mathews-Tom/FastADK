@@ -314,7 +314,7 @@ class VectorMemoryBackend(MemoryBackend):
         try:
             embedding = await self.embedder.get_embedding(text_to_embed)
         except Exception as e:
-            logger.error(f"Failed to generate embedding for key {key}: {str(e)}")
+            logger.error("Failed to generate embedding for key %s: %s", key, str(e))
             embedding = None
 
         # Create entry
@@ -504,7 +504,7 @@ class VectorMemoryBackend(MemoryBackend):
 
             return entries
         except Exception as e:
-            logger.error(f"Error in semantic search: {str(e)}")
+            logger.error("Error in semantic search: %s", str(e))
             # Return empty list on error
             return []
 

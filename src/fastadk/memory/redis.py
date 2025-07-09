@@ -73,9 +73,9 @@ class RedisBackend(MemoryBackend):
             if redis is None:
                 raise ImportError("Redis module not installed")
             self.redis = redis.Redis(**connection_params)
-            logger.debug(f"Initialized Redis memory backend: {host}:{port}/{db}")
+            logger.debug("Initialized Redis memory backend: %s:%s/%s", host, port, db)
         except Exception as e:
-            logger.error(f"Failed to initialize Redis memory backend: {str(e)}")
+            logger.error("Failed to initialize Redis memory backend: %s", str(e))
             raise ServiceConnectionError(
                 message=f"Failed to connect to Redis: {str(e)}",
                 error_code="REDIS_CONNECTION_ERROR",
@@ -119,7 +119,7 @@ class RedisBackend(MemoryBackend):
 
             return entry
         except Exception as e:
-            logger.error(f"Redis get error for key {key}: {str(e)}")
+            logger.error("Redis get error for key %s: %s", key, str(e))
             raise OperationError(
                 message=f"Failed to get data from Redis: {str(e)}",
                 error_code="REDIS_GET_ERROR",
@@ -166,7 +166,7 @@ class RedisBackend(MemoryBackend):
             return entry
 
         except Exception as e:
-            logger.error(f"Redis set error for key {key}: {str(e)}")
+            logger.error("Redis set error for key %s: %s", key, str(e))
             raise OperationError(
                 message=f"Failed to set data in Redis: {str(e)}",
                 error_code="REDIS_SET_ERROR",
@@ -189,7 +189,7 @@ class RedisBackend(MemoryBackend):
             # Explicitly cast the result to ensure it's a boolean
             return bool(result > 0)
         except Exception as e:
-            logger.error(f"Redis delete error for key {key}: {str(e)}")
+            logger.error("Redis delete error for key %s: %s", key, str(e))
             raise OperationError(
                 message=f"Failed to delete data from Redis: {str(e)}",
                 error_code="REDIS_DELETE_ERROR",
@@ -216,7 +216,7 @@ class RedisBackend(MemoryBackend):
                 return entry is not None
             return False
         except Exception as e:
-            logger.error(f"Redis exists error for key {key}: {str(e)}")
+            logger.error("Redis exists error for key %s: %s", key, str(e))
             raise OperationError(
                 message=f"Failed to check key existence in Redis: {str(e)}",
                 error_code="REDIS_EXISTS_ERROR",
@@ -243,7 +243,7 @@ class RedisBackend(MemoryBackend):
             # Remove the prefix from each key
             return [self._strip_prefix(key) for key in keys]
         except Exception as e:
-            logger.error(f"Redis keys error for pattern {pattern}: {str(e)}")
+            logger.error("Redis keys error for pattern %s: %s", pattern, str(e))
             raise OperationError(
                 message=f"Failed to get keys from Redis: {str(e)}",
                 error_code="REDIS_KEYS_ERROR",
@@ -271,7 +271,7 @@ class RedisBackend(MemoryBackend):
             # Explicitly cast the result to ensure it's an integer
             return int(count)
         except Exception as e:
-            logger.error(f"Redis clear error for pattern {pattern}: {str(e)}")
+            logger.error("Redis clear error for pattern %s: %s", pattern, str(e))
             raise OperationError(
                 message=f"Failed to clear keys in Redis: {str(e)}",
                 error_code="REDIS_CLEAR_ERROR",
@@ -297,7 +297,7 @@ class RedisBackend(MemoryBackend):
             # Use entry's TTL method
             return entry.get_ttl()
         except Exception as e:
-            logger.error(f"Redis TTL error for key {key}: {str(e)}")
+            logger.error("Redis TTL error for key %s: %s", key, str(e))
             raise OperationError(
                 message=f"Failed to get TTL in Redis: {str(e)}",
                 error_code="REDIS_TTL_ERROR",
@@ -356,7 +356,7 @@ class RedisBackend(MemoryBackend):
 
             return results[:limit]
         except Exception as e:
-            logger.error(f"Redis search error for query {query}: {str(e)}")
+            logger.error("Redis search error for query %s: %s", query, str(e))
             raise OperationError(
                 message=f"Failed to search in Redis: {str(e)}",
                 error_code="REDIS_SEARCH_ERROR",

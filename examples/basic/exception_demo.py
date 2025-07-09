@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 @Agent(
-    model="gemini-1.5-pro",
+    model="gemini-2.5-flash",
     description="An agent demonstrating exception handling",
 )
 class ExceptionDemoAgent(BaseAgent):
