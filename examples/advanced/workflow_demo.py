@@ -90,7 +90,18 @@ async def validate_data(data: dict[str, Any]) -> dict[str, Any]:
     print("🔍 Validating data...")
 
     # Randomly fail sometimes to demonstrate retry
-    if random.random() < 0.3:
+    # For parallel workflow, make retry failure probability lower to ensure successful completion
+    failure_probability = 0.2
+
+    # If this is part of a parallel workflow, we can detect it by checking if data is a list
+    # This check isn't ideal but works for demonstration purposes
+    if isinstance(data, dict) and any(
+        key in data for key in ["temperature", "price", "symbol", "location"]
+    ):
+        # Lower failure probability for key examples
+        failure_probability = 0.1
+
+    if random.random() < failure_probability:
         print("⚠️ Validation error (will retry)...")
         raise ValueError("Random validation failure")
 
@@ -260,22 +271,31 @@ def format_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
     for result in results:
+        # Debug print to help diagnose issues
+        print(
+            f"Processing result: valid={result.get('valid')}, has_analysis={'analysis' in result}"
+        )
+
         if result.get("valid", False) and "analysis" in result:
             # Add source-specific insights
             if "temperature" in result:
                 source_type = "weather"
                 location = result.get("location", "Unknown")
-                output["insights"].append(
+                insight = (
                     f"Weather in {location}: {result['temperature']}°F, {result['conditions']}. "
                     f"{result['analysis'].get('recommendation', '')}"
                 )
+                output["insights"].append(insight)
+                print(f"Added weather insight: {insight}")
             elif "price" in result:
                 source_type = "finance"
                 symbol = result.get("symbol", "Unknown")
-                output["insights"].append(
+                insight = (
                     f"Stock {symbol}: ${result['price']:.2f} ({result['change']:+.2f}). "
                     f"Recommendation: {result['analysis'].get('recommendation', '')}"
                 )
+                output["insights"].append(insight)
+                print(f"Added finance insight: {insight}")
             else:
                 source_type = "unknown"
 

@@ -32,7 +32,7 @@ load_dotenv()
 
 
 @Agent(
-    model="gpt-3.5-turbo",  # You can use any model supported by LiteLLM
+    model="gpt-4.1",  # You can use any model supported by LiteLLM
     provider="litellm",
     description="An agent that uses LiteLLM as a provider",
 )

@@ -68,7 +68,7 @@ prompt_path = Path(__file__).parent / "weather_agent_prompt.txt"
 
 
 @Agent(
-    model="gemini-1.5-pro",
+    model="gemini-2.5-flash",
     description="A professional meteorologist agent using live data",
     system_prompt=prompt_path,
     provider="gemini",

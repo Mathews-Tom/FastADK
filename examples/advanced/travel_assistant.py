@@ -238,7 +238,7 @@ async def fetch_with_fallback(url: str, retries: int = 3, timeout: float = 5.0) 
 
 
 @Agent(
-    model="gemini-1.5-pro",
+    model="gemini-2.5-flash",
     description="A comprehensive travel assistant that helps plan trips and provides travel information",
     provider="gemini",
     system_prompt="""You are TravelBuddy, an intelligent travel assistant designed to help users plan their perfect trip.
