@@ -20,7 +20,7 @@ def count_tokens(text: str, model: str) -> int:
 
     Args:
         text: The text to count tokens in
-        model: The model identifier (e.g., 'gpt-4', 'claude-3-opus', 'gemini-1.5-pro')
+        model: The model identifier (e.g., 'gpt-4.1', 'claude-3.5-sonnet', 'gemini-2.5-flash')
 
     Returns:
         Number of tokens in the text

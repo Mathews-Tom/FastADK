@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveFloat
 
+from .pricing import DEFAULT_PRICING
+
 logger = logging.getLogger("fastadk.tokens")
 
 
@@ -76,29 +78,6 @@ class CostCalculator:
     based on provider-specific pricing models.
     """
 
-    # Default pricing per 1K tokens (input, output) in USD
-    # These are approximate and may change; always check provider documentation
-    DEFAULT_PRICING = {
-        "openai": {
-            "gpt-3.5-turbo": (0.0015, 0.002),
-            "gpt-4": (0.03, 0.06),
-            "gpt-4-turbo": (0.01, 0.03),
-            "gpt-4o": (0.01, 0.03),
-            # Add other OpenAI models as needed
-        },
-        "anthropic": {
-            "claude-3-opus": (0.015, 0.075),
-            "claude-3-sonnet": (0.003, 0.015),
-            "claude-3-haiku": (0.00025, 0.00125),
-            # Add other Anthropic models as needed
-        },
-        "gemini": {
-            "gemini-1.5-pro": (0.0035, 0.0035),  # Same for input/output
-            "gemini-1.5-flash": (0.0007, 0.0007),  # Same for input/output
-            # Add other Gemini models as needed
-        },
-    }
-
     @classmethod
     def calculate(
         cls, usage: TokenUsage, custom_price_per_1k: Optional[Dict[str, float]] = None
@@ -124,7 +103,7 @@ class CostCalculator:
             model = usage.model.lower()
 
             # Get default pricing if available
-            provider_pricing = cls.DEFAULT_PRICING.get(provider, {})
+            provider_pricing = DEFAULT_PRICING.get(provider, {})
             model_pricing = provider_pricing.get(model, None)
 
             if model_pricing:
@@ -132,7 +111,9 @@ class CostCalculator:
             else:
                 # If no specific pricing found, use conservative estimates
                 logger.warning(
-                    f"No pricing data for {provider}/{model}. Using conservative estimates."
+                    "No pricing data for %s/%s. Using conservative estimates.",
+                    provider,
+                    model,
                 )
                 input_price = 0.01  # $0.01 per 1K tokens
                 output_price = 0.02  # $0.02 per 1K tokens
