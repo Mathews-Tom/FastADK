@@ -206,13 +206,21 @@ class BaseAgent:
             len(self.tool_manager.tools),
         )
 
-        # Emit agent initialized event
-        asyncio.create_task(
-            self.plugin_manager.emit_event(
-                "agent:initialized",
-                {"agent": self, "agent_class": self.__class__.__name__},
+        # Emit agent initialized event - ensure event loop is running or handle gracefully
+        try:
+            # Get running event loop and create task
+            asyncio.get_running_loop()
+            asyncio.create_task(
+                self.plugin_manager.emit_event(
+                    "agent:initialized",
+                    {"agent": self, "agent_class": self.__class__.__name__},
+                )
             )
-        )
+        except RuntimeError:
+            # No running event loop, log this but don't fail initialization
+            logger.debug(
+                "No running event loop for agent initialization event. This is normal in test environments."
+            )
 
     def _initialize_tools(self) -> None:
         """Initialize tools from class metadata and instance methods."""
