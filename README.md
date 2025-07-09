@@ -1,8 +1,34 @@
-# FastADK
+# FastADK – Declarative, Provider-Agnostic AI Agents, from Prototype to Production in Minutes
 
-![FastADK Banner](docs)
+## Introduction
 
-FastADK is an open‑source Python framework that makes building LLM-powered agents simple, efficient, and production-ready. It offers declarative APIs, comprehensive observability, and powerful scaling capabilities that enable developers to go from prototype to production with the same codebase.
+FastADK is an **open-source Python “agent-OS”** that layers ergonomic abstractions over Google ADK, Vertex AI and other LLM back-ends—OpenAI, Anthropic, Gemini, LiteLLM or any custom provider—so teams can design, test and ship tool-using agents with almost no boilerplate. A pair of declarative decorators (`@Agent`, `@tool`) turns plain Python classes into fully featured AI workers, while the same codebase can be elevated from a local notebook to containerised or server-less production without rewrites.
+
+![FastADK Banner](docs/assets/FastADK-Banner.png)
+
+### Core Feature Set
+
+* **Declarative agent & tool APIs** for concise definitions
+* **Provider-agnostic runtime** that can switch models with one config change
+* **Built-in token / cost analytics** with budgeting guards
+* **Advanced memory layer** (sliding-window, summarisation, vector stores)
+* **True async & parallel execution** for high-throughput workloads
+* **Plugin architecture & context policies** to extend behaviour safely
+* **YAML / env configuration system** for twelve-factor deployments
+
+### Developer Experience & Observability
+
+FastADK ships a hot-reload CLI/REPL, project-scaffolding commands, auto-generated FastAPI routes, structured JSON logging, Prometheus metrics, and OpenTelemetry tracing—so every prompt, span and cost line can be inspected in Grafana before it reaches prod. Mock-LLM test fixtures and verbose chain-of-thought capture keep CI pipelines deterministic.
+
+### Scalability & Workflow Engine
+
+Under the hood, a non-blocking async core, parallel/conditional Workflow DSL, built-in caching, batch processors and retry policies let you orchestrate multi-agent pipelines that fan-out and gather results in milliseconds—then scale the same graph horizontally across Kubernetes or server-less edge functions.
+
+### Extensibility
+
+Pluggable adapters (Discord, Slack, HTTP, custom) and dynamic plugin discovery make it trivial to add new memory stores, model providers, tools or UI front-ends. Fine-tuning helpers and vector-store integrations round out an ecosystem designed for continuous evolution.
+
+![FastADK Poster](docs/assets/FastADK-Poster.png)
 
 ## Features
 
