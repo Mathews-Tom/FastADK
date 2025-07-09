@@ -484,7 +484,7 @@ class DiscordAgentAdapter:
                     )
                     reference = reference_message
                 except Exception as e:
-                    logger.warning(f"Could not fetch reference message: {str(e)}")
+                    logger.warning("Could not fetch reference message: %s", str(e))
 
             # Handle Discord's 2000 character limit
             chunks = self._chunk_message(text)

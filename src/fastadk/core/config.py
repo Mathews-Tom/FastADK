@@ -60,7 +60,7 @@ class ModelConfig(BaseModel):
         description="The model provider (gemini, vertex, openai, anthropic, etc.)",
     )
     model_name: str = Field(
-        default="gemini-1.5-pro",
+        default="gemini-2.5-flash",
         description="The model name to use",
     )
     api_key_env_var: str = Field(

@@ -163,7 +163,7 @@ class ConversationContext:
             self._full_history = [ContextEntry(**entry) for entry in history_entry.data]
 
         self._is_loaded = True
-        logger.debug(f"Loaded context for session {self.session_id}")
+        logger.debug("Loaded context for session %s", self.session_id)
 
     async def save(self) -> None:
         """
@@ -184,7 +184,7 @@ class ConversationContext:
         history_data = [entry.model_dump() for entry in self._full_history]
         await self.memory.set(history_key, history_data)
 
-        logger.debug(f"Saved context for session {self.session_id}")
+        logger.debug("Saved context for session %s", self.session_id)
 
     async def add_entry(
         self, role: str, content: str, metadata: dict[str, Any] | None = None
@@ -309,7 +309,7 @@ class ConversationContext:
         self._is_loaded = True
         self._needs_summarization = False
 
-        logger.debug(f"Cleared context for session {self.session_id}")
+        logger.debug("Cleared context for session %s", self.session_id)
 
     async def summarize_older_context(self) -> str:
         """

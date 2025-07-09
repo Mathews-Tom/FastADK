@@ -247,7 +247,9 @@ class Orchestrator:
         for agent_name, agent in agents_to_run:
             try:
                 logger.info(
-                    f"Running agent '{agent_name}' with input: {current_input[:100]}..."
+                    "Running agent '%s' with input: %s...",
+                    agent_name,
+                    current_input[:100],
                 )
 
                 # Run the agent
@@ -266,7 +268,9 @@ class Orchestrator:
                 # Update input for next agent
                 current_input = output
 
-                logger.info(f"Agent '{agent_name}' produced output: {output[:100]}...")
+                logger.info(
+                    "Agent '%s' produced output: %s...", agent_name, output[:100]
+                )
 
             except (ValueError, KeyError, AttributeError) as e:
                 logger.error(
@@ -367,7 +371,7 @@ class Orchestrator:
             result.final_output = output
 
             logger.info(
-                f"Dynamic orchestration completed, visited {len(visited_agents)} agents"
+                "Dynamic orchestration completed, visited %d agents", len(visited_agents)
             )
 
         except (ValueError, KeyError, AttributeError) as e:
@@ -469,9 +473,8 @@ class Orchestrator:
             result: Orchestration result to update
         """
         try:
-            logger.info(
-                f"Running agent '{agent_name}' with input: {input_text[:100]}..."
-            )
+            truncated_input = input_text[:100]
+            logger.info("Running agent '%s' with input: %s...", agent_name, truncated_input)
 
             # Run the agent
             output = await agent.run(input_text)
@@ -486,7 +489,7 @@ class Orchestrator:
                 }
             )
 
-            logger.info(f"Agent '{agent_name}' produced output: {output[:100]}...")
+            logger.info("Agent '%s' produced output: %s...", agent_name, output[:100])
 
         except (ValueError, KeyError, AttributeError) as e:
             logger.error(

@@ -2,19 +2,22 @@
 Plugin system for FastADK.
 
 This module provides a plugin manager that can discover, load, and manage plugins
-for the FastADK framework. It supports model providers, memory backends, and tools.
+for the FastADK framework. It supports model providers, memory backends, tools,
+and event-based plugins.
 """
 
+import asyncio
 import importlib
 import inspect
 import logging
 import pkgutil
 import sys
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 from ..memory.base import MemoryBackend
 from ..providers.base import ModelProviderABC
+from .plugin import EventHandler, Plugin
 
 logger = logging.getLogger("fastadk.plugins")
 
@@ -27,6 +30,7 @@ class PluginType(Enum):
     MODEL_PROVIDER = "model_provider"
     MEMORY_BACKEND = "memory_backend"
     TOOL = "tool"
+    EVENT_PLUGIN = "event_plugin"
     CUSTOM = "custom"
 
 
@@ -81,7 +85,7 @@ class PluginManager:
     Manages FastADK plugins.
 
     The PluginManager discovers, loads, and manages plugins for FastADK.
-    It supports model providers, memory backends, and custom tools.
+    It supports model providers, memory backends, custom tools, and event-based plugins.
     """
 
     def __init__(self) -> None:
@@ -90,6 +94,10 @@ class PluginManager:
         self._loaded_instances: Dict[str, Any] = {}
         self._loaded_classes: Dict[str, Type[Any]] = {}
         self._plugin_entry_points = ["fastadk.plugins", "fastadk_plugins"]
+
+        # Event system
+        self._event_handlers: Dict[str, List[EventHandler]] = {}
+        self._active_plugins: Dict[str, Plugin] = {}
 
     def discover_plugins(self, rescan: bool = False) -> List[PluginInfo]:
         """
@@ -117,7 +125,7 @@ class PluginManager:
         # Discover in installed packages
         self._discover_in_installed_packages()
 
-        logger.info(f"Discovered {len(self._plugins)} plugins")
+        logger.info("Discovered %d plugins", len(self._plugins))
         return list(self._plugins.values())
 
     def _discover_builtin_providers(self) -> None:
@@ -162,7 +170,7 @@ class PluginManager:
                                 f"{plugin_info.plugin_type.value}.{plugin_info.name}"
                             ] = plugin_info
                             logger.debug(
-                                f"Discovered built-in provider: {provider_name}"
+                                "Discovered built-in provider: %s", provider_name
                             )
 
                 except (ImportError, AttributeError) as e:
@@ -222,7 +230,7 @@ class PluginManager:
                             f"{plugin_info.plugin_type.value}.{plugin_info.name}"
                         ] = plugin_info
                         logger.debug(
-                            f"Discovered plugin via entry point: {plugin_name}"
+                            "Discovered plugin via entry point: %s", plugin_name
                         )
 
                     except Exception as e:
@@ -279,7 +287,7 @@ class PluginManager:
                             self._plugins[
                                 f"{plugin_info.plugin_type.value}.{plugin_info.name}"
                             ] = plugin_info
-                            logger.debug(f"Discovered plugin in package: {plugin_name}")
+                            logger.debug("Discovered plugin in package: %s", plugin_name)
 
                         except Exception as e:
                             logger.warning(
@@ -385,7 +393,7 @@ class PluginManager:
             return plugin_class
 
         except (ImportError, AttributeError) as e:
-            logger.error(f"Failed to load plugin '{plugin_id}': {str(e)}")
+            logger.error("Failed to load plugin '%s': %s", plugin_id, str(e))
             raise ImportError(f"Failed to load plugin '{plugin_id}': {str(e)}") from e
 
     def get_instance(
@@ -446,7 +454,7 @@ class PluginManager:
             return plugin_instance
 
         except Exception as e:
-            logger.error(f"Failed to create instance of plugin '{plugin_id}': {str(e)}")
+            logger.error("Failed to create instance of plugin '%s': %s", plugin_id, str(e))
             raise ValueError(
                 f"Failed to create instance of plugin '{plugin_id}': {str(e)}"
             ) from e
@@ -542,6 +550,100 @@ class PluginManager:
             List of dictionaries with plugin information
         """
         return [p.to_dict() for p in self._plugins.values()]
+
+    # Event system methods
+    def register_event_handler(self, event_name: str, handler: EventHandler) -> None:
+        """
+        Register an event handler.
+
+        Args:
+            event_name: The name of the event
+            handler: The event handler function
+        """
+        if event_name not in self._event_handlers:
+            self._event_handlers[event_name] = []
+        self._event_handlers[event_name].append(handler)
+        logger.debug("Registered handler for event %s", event_name)
+
+    async def emit_event(self, event_name: str, event_data: Dict[str, Any]) -> None:
+        """
+        Emit an event to all registered handlers.
+
+        Args:
+            event_name: The name of the event
+            event_data: The event data
+        """
+        # Log event (debug level)
+        logger.debug("Emitting event %s with data: %s", event_name, event_data)
+
+        # Call handlers registered directly with the plugin manager
+        if event_name in self._event_handlers:
+            for handler in self._event_handlers[event_name]:
+                try:
+                    result = handler(event_data)
+                    if asyncio.iscoroutine(result):
+                        await result
+                except Exception as e:
+                    logger.error(
+                        "Error in event handler for %s: %s",
+                        event_name,
+                        e,
+                        exc_info=True,
+                    )
+
+        # Call plugin handlers
+        for plugin in self._active_plugins.values():
+            await plugin.handle_event(event_name, event_data)
+
+    async def register_plugin_instance(self, plugin: Plugin) -> None:
+        """
+        Register a plugin instance.
+
+        Args:
+            plugin: The plugin instance
+        """
+        if plugin.name in self._active_plugins:
+            logger.warning("Plugin %s already registered, replacing", plugin.name)
+
+        # Initialize the plugin
+        await plugin.initialize(self)
+
+        # Store the plugin
+        self._active_plugins[plugin.name] = plugin
+        logger.info("Registered plugin %s v%s", plugin.name, plugin.version)
+
+    def get_plugin(self, name: str) -> Optional[Plugin]:
+        """
+        Get a registered plugin by name.
+
+        Args:
+            name: The name of the plugin
+
+        Returns:
+            The plugin instance if found, None otherwise
+        """
+        return self._active_plugins.get(name)
+
+    def get_all_plugins(self) -> List[Plugin]:
+        """
+        Get all registered plugins.
+
+        Returns:
+            List of plugin instances
+        """
+        return list(self._active_plugins.values())
+
+    async def shutdown_plugins(self) -> None:
+        """Shut down all registered plugins."""
+        for plugin in self._active_plugins.values():
+            try:
+                await plugin.shutdown()
+                logger.debug("Plugin %s shutdown complete", plugin.name)
+            except Exception as e:
+                logger.error("Error shutting down plugin %s: %s", plugin.name, e)
+
+        # Clear the plugins
+        self._active_plugins.clear()
 
 
 # Singleton instance

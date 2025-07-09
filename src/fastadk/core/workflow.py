@@ -167,8 +167,9 @@ class WorkflowStep(Generic[T, U], ABC):
 
                 # Log the error and retry
                 logger.warning(
-                    f"Step '{self.name}' failed: {str(e)}. "
-                    f"Retrying ({self.retry - remaining_retries}/{self.retry})..."
+                    "Step '%s' failed: %s. "
+                    "Retrying (%d/%d)...",
+                    self.name, str(e), self.retry - remaining_retries, self.retry
                 )
                 # Small delay before retry
                 await asyncio.sleep(0.1 * (self.retry - remaining_retries))
@@ -668,7 +669,7 @@ class Workflow(Generic[T, U]):
             Workflow result containing output and metadata
         """
         start_time = time.time()
-        logger.info(f"Starting workflow '{self.name}' with id {self.id}")
+        logger.info("Starting workflow '%s' with id %s", self.name, self.id)
 
         try:
             # Execute the root step
@@ -694,7 +695,7 @@ class Workflow(Generic[T, U]):
 
             # Log success
             logger.info(
-                f"Workflow '{self.name}' completed successfully in {execution_time:.2f}s"
+                "Workflow '%s' completed successfully in %.2fs", self.name, execution_time
             )
 
             # Record execution in history
@@ -709,7 +710,7 @@ class Workflow(Generic[T, U]):
 
             # Log failure
             logger.error(
-                f"Workflow '{self.name}' failed after {execution_time:.2f}s: {str(e)}"
+                "Workflow '%s' failed after %.2fs: %s", self.name, execution_time, str(e)
             )
 
             # Record execution in history
@@ -888,9 +889,9 @@ class Workflow(Generic[T, U]):
         if not coroutines:
             return []
 
-        logger.info(
-            f"Running {len(coroutines)} coroutines in parallel for workflow '{self.name}'"
-        )
+            logger.info(
+                "Running %d coroutines in parallel for workflow '%s'", len(coroutines), self.name
+            )
 
         # Create tasks for all coroutines
         tasks = [asyncio.create_task(coro) for coro in coroutines]
@@ -912,7 +913,7 @@ class Workflow(Generic[T, U]):
                     task.cancel()
 
             logger.warning(
-                f"Parallel execution in workflow '{self.name}' timed out after {timeout}s"
+                "Parallel execution in workflow '%s' timed out after %ss", self.name, timeout
             )
             raise
         except Exception as e:
@@ -921,7 +922,7 @@ class Workflow(Generic[T, U]):
                 if not task.done():
                     task.cancel()
 
-            logger.error(f"Error in parallel execution: {str(e)}")
+            logger.error("Error in parallel execution: %s", str(e))
             raise
 
     @classmethod
