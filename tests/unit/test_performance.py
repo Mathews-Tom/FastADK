@@ -208,7 +208,9 @@ async def test_tool_caching_performance() -> None:
 
     # Print timing info for debugging
     print(f"Cached tool times: {cached_first_time:.4f}s, {cached_second_time:.4f}s")
-    print(f"Uncached tool times: {uncached_first_time:.4f}s, {uncached_second_time:.4f}s")
+    print(
+        f"Uncached tool times: {uncached_first_time:.4f}s, {uncached_second_time:.4f}s"
+    )
 
     # In local testing, cached is faster, but in CI environments timing can vary
     # Instead of asserting on timing, just check that functionality works

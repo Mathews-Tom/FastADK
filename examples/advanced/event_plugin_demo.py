@@ -49,7 +49,9 @@ class MetricsPlugin(Plugin):
         self.llm_tokens: Dict[str, int] = {}
         self.start_time = time.time()
 
-    async def initialize(self, plugin_manager: Any = None, **kwargs) -> None:  # pylint: disable=unused-argument
+    async def initialize(
+        self, plugin_manager: Any = None, **kwargs
+    ) -> None:  # pylint: disable=unused-argument
         """Initialize the plugin."""
         await super().initialize(plugin_manager, **kwargs)
         self.logger.info("Initializing %s v%s", self.name, self.version)

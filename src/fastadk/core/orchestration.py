@@ -371,7 +371,8 @@ class Orchestrator:
             result.final_output = output
 
             logger.info(
-                "Dynamic orchestration completed, visited %d agents", len(visited_agents)
+                "Dynamic orchestration completed, visited %d agents",
+                len(visited_agents),
             )
 
         except (ValueError, KeyError, AttributeError) as e:
@@ -474,7 +475,9 @@ class Orchestrator:
         """
         try:
             truncated_input = input_text[:100]
-            logger.info("Running agent '%s' with input: %s...", agent_name, truncated_input)
+            logger.info(
+                "Running agent '%s' with input: %s...", agent_name, truncated_input
+            )
 
             # Run the agent
             output = await agent.run(input_text)

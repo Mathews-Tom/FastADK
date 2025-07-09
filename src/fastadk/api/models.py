@@ -21,6 +21,12 @@ class AgentRequest(BaseModel):
     )
 
 
+class AgentStreamRequest(AgentRequest):
+    """Request model for streaming agent responses."""
+
+    stream: bool = Field(True, description="Whether to stream the response")
+
+
 class ToolRequest(BaseModel):
     """Request model for direct tool execution."""
 
@@ -82,3 +88,34 @@ class HealthCheck(BaseModel):
         ..., description="Current environment (development, production)"
     )
     uptime: float = Field(..., description="Server uptime in seconds")
+
+
+class ErrorResponse(BaseModel):
+    """Error response model."""
+
+    error: str = Field(..., description="Error message")
+    error_type: str = Field(..., description="Type of error")
+    status_code: int = Field(..., description="HTTP status code")
+    details: dict[str, Any] = Field(
+        default_factory=dict, description="Additional error details"
+    )
+
+
+class ToolCall(BaseModel):
+    """Model representing a tool call."""
+
+    tool_name: str = Field(..., description="Name of the tool to call")
+    parameters: dict[str, Any] = Field(
+        default_factory=dict, description="Parameters for the tool call"
+    )
+    call_id: str = Field(..., description="Unique identifier for this tool call")
+
+
+class ToolCallResult(BaseModel):
+    """Model representing the result of a tool call."""
+
+    tool_name: str = Field(..., description="Name of the tool that was called")
+    result: Any = Field(..., description="Result of the tool call")
+    call_id: str = Field(..., description="Identifier matching the original tool call")
+    success: bool = Field(..., description="Whether the tool call was successful")
+    error: str | None = Field(None, description="Error message if the call failed")

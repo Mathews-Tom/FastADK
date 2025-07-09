@@ -8,9 +8,13 @@ This page documents the API models used in FastADK's HTTP API.
 
 ::: fastadk.api.models.AgentStreamRequest
 
+::: fastadk.api.models.ToolRequest
+
 ## Response Models
 
 ::: fastadk.api.models.AgentResponse
+
+::: fastadk.api.models.ToolResponse
 
 ::: fastadk.api.models.ErrorResponse
 
@@ -19,6 +23,14 @@ This page documents the API models used in FastADK's HTTP API.
 ::: fastadk.api.models.ToolCall
 
 ::: fastadk.api.models.ToolCallResult
+
+## Agent Information
+
+::: fastadk.api.models.AgentInfo
+
+## Health Check
+
+::: fastadk.api.models.HealthCheck
 
 ## Examples
 

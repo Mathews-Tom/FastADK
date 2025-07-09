@@ -77,4 +77,4 @@ To use this UI with your own FastADK agents:
 
 - fastadk
 - streamlit
-- An OpenAI API key (set as OPENAI_API_KEY environment variable) or appropriate API key for your chosen model provider
+- An OpenAI API key (set as OPENAI_API_KEY environment variable) or appropriate API key for your chosen model provider.

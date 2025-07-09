@@ -35,7 +35,9 @@ class Plugin:
         self.initialized = False
         self._event_handlers: Dict[str, List[EventHandler]] = {}
 
-    async def initialize(self, plugin_manager: Any = None, **kwargs) -> None:  # pylint: disable=unused-argument
+    async def initialize(
+        self, plugin_manager: Any = None, **kwargs
+    ) -> None:  # pylint: disable=unused-argument
         """Initialize the plugin.
 
         This method is called when the plugin is first registered with a plugin manager.
@@ -196,4 +198,3 @@ def get_supported_plugins(cls: Type) -> List[Type[Plugin]]:
     if cls in _plugin_registry:
         return _plugin_registry[cls].supported_plugins
     return []
-

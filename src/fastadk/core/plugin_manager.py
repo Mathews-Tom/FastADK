@@ -287,7 +287,9 @@ class PluginManager:
                             self._plugins[
                                 f"{plugin_info.plugin_type.value}.{plugin_info.name}"
                             ] = plugin_info
-                            logger.debug("Discovered plugin in package: %s", plugin_name)
+                            logger.debug(
+                                "Discovered plugin in package: %s", plugin_name
+                            )
 
                         except Exception as e:
                             logger.warning(
@@ -454,7 +456,9 @@ class PluginManager:
             return plugin_instance
 
         except Exception as e:
-            logger.error("Failed to create instance of plugin '%s': %s", plugin_id, str(e))
+            logger.error(
+                "Failed to create instance of plugin '%s': %s", plugin_id, str(e)
+            )
             raise ValueError(
                 f"Failed to create instance of plugin '{plugin_id}': {str(e)}"
             ) from e

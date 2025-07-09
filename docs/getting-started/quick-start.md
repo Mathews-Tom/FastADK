@@ -67,7 +67,7 @@ FastADK can automatically expose your agent as a REST API:
 fastadk serve weather_agent.py
 ```
 
-This starts a FastAPI server at http://localhost:8000 with the following endpoints:
+This starts a FastAPI server at [http://localhost:8000](http://localhost:8000) with the following endpoints:
 
 - `POST /agents/weather`: Send messages to your agent
 - `GET /docs`: Swagger UI for API documentation
@@ -80,7 +80,7 @@ curl -X POST http://localhost:8000/agents/weather \
   -d '{"message": "What is the weather in San Francisco?"}'
 ```
 
-Or using the Swagger UI by opening http://localhost:8000/docs in your browser.
+Or using the Swagger UI by opening [http://localhost:8000/docs](http://localhost:8000/docs) in your browser.
 
 ## Adding Memory to Your Agent
 
@@ -149,4 +149,4 @@ Now that you have created your first agent, you can:
 - Learn about [agent workflows](../concepts/workflows.md) for complex scenarios
 - Add [advanced memory capabilities](../concepts/memory.md) with Redis
 - Explore [advanced tool features](../concepts/tools.md) like caching and retries
-- Check out the [full examples](../examples/weather-agent.md) for more sophisticated implementations
+- Check out the [full examples](../examples/basic/reasoning_demo.md) for more sophisticated implementations

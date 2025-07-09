@@ -162,5 +162,5 @@ Now that you have FastADK installed, you can:
 
 - Continue to the [Quick Start Guide](quick-start.md) to create your first agent
 - Explore the [System Overview](../system-overview.md) to understand FastADK's architecture
-- Check out the [Examples](../examples/weather-agent.md) to see FastADK in action
+- Check out the [Examples](../examples/basic/reasoning_demo.md) to see FastADK in action
 - Read the [API Reference](../api/core/agent.md) for detailed documentation

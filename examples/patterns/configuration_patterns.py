@@ -637,7 +637,8 @@ async def demonstrate_configuration_patterns() -> None:
 
         # Write a minimal config
         with open(fastadk_config_path, "w", encoding="utf-8") as f:
-            f.write("""
+            f.write(
+                """
 app_name: FastADKDemo
 version: 1.0.0
 environment: development
@@ -651,7 +652,8 @@ agents:
     description: A demo agent
     model: gpt-4
     provider: openai
-            """)
+            """
+            )
 
         print(f"Created fastadk.yaml at: {fastadk_config_path}")
 

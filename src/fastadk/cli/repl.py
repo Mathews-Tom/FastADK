@@ -164,11 +164,11 @@ class ReplEnvironment:
             "model": getattr(self.agent, "_model_name", "Unknown"),
             "provider": getattr(self.agent, "_provider", "Unknown"),
             "tools": list(getattr(self.agent, "tools", {}).keys()),
-            "memory_backend": getattr(
-                self.agent, "memory_backend", "Unknown"
-            ).__class__.__name__
-            if hasattr(self.agent, "memory_backend")
-            else "None",
+            "memory_backend": (
+                getattr(self.agent, "memory_backend", "Unknown").__class__.__name__
+                if hasattr(self.agent, "memory_backend")
+                else "None"
+            ),
         }
 
     def export_history(self, path: str) -> bool:

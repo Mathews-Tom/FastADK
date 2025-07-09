@@ -491,7 +491,9 @@ async def demonstrate_context_policies() -> None:
         if result.get("success", False):
             print(f"✅ Switched to {policy_name} policy")
         else:
-            print(f"❌ Failed to switch policy: {result.get('message', 'Unknown error')}")
+            print(
+                f"❌ Failed to switch policy: {result.get('message', 'Unknown error')}"
+            )
             continue
 
         # Get context snapshot with this policy
@@ -626,7 +628,9 @@ async def demonstrate_context_policies() -> None:
         if result.get("success", False):
             print(f"  ➕ Added message from {role} (type: {msg_type})")
         else:
-            print(f"  ❌ Failed to add message: {result.get('message', 'Unknown error')}")
+            print(
+                f"  ❌ Failed to add message: {result.get('message', 'Unknown error')}"
+            )
 
     # Show updated context
     print("\nUpdated context with summarization policy:")

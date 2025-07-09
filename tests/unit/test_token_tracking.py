@@ -67,7 +67,7 @@ class TestCostCalculator:
         # Calculate cost
         cost = CostCalculator.calculate(usage)
 
-        # Using default pricing for GPT-4: $0.03/1K input, $0.06/1K output
+        # Using pricing for GPT-4: $0.03/1K input, $0.06/1K output
         expected_cost = (1000 / 1000 * 0.03) + (500 / 1000 * 0.06)
         assert cost == pytest.approx(expected_cost, rel=1e-6)
 
