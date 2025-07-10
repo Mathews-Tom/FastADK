@@ -64,99 +64,96 @@ FastADK follows a modular architecture designed for flexibility, extensibility, 
 
 ```mermaid
 graph TD
+    %% ───────────────────────── User Layer ─────────────────────────
     subgraph "User Applications"
+        direction TB
         UA[Agent Implementations]
     end
-    
+
+    %% ──────────────────── FastADK Framework (vertical) ────────────────────
     subgraph "FastADK Framework"
+        direction TB   %% <-- stack the six inner sections top-to-bottom
+
+        %% ───────── Core ─────────
         subgraph "Core"
+            direction TB
             A[Agent System]
             T[Tool Manager]
             W[Workflow Engine]
             CP[Context Policies]
             PM[Plugin Manager]
         end
-        
+
+        %% ─────── Infrastructure ───────
         subgraph "Infrastructure"
+            direction TB
             O[Observability]
             C[Configuration]
             API[HTTP API]
             CLI[CLI Tools]
         end
-        
+
+        %% ───────── Providers ─────────
         subgraph "Providers"
+            direction TB
             PO[OpenAI]
             PG[Gemini]
             PA[Anthropic]
             PL[LiteLLM]
             PC[Custom]
         end
-        
+
+        %% ───────── Memory ─────────
         subgraph "Memory"
+            direction TB
             MI[In-Memory]
             MR[Redis]
             MV[Vector Store]
             MS[SQL]
         end
-        
+
+        %% ───────── Tokens ─────────
         subgraph "Tokens"
+            direction TB
             TC[Counting]
             TP[Pricing]
-            TB[Budgeting]
+            TBb[Budgeting]
         end
-        
+
+        %% ───────── Adapters ─────────
         subgraph "Adapters"
+            direction TB
             AD[Discord]
             AS[Slack]
             AC[Custom]
         end
     end
-    
+
+    %% ───────────────────── External Services ─────────────────────
     subgraph "External Services"
+        direction TB
         LLM[LLM APIs]
         DB[Databases]
         MM[Metrics & Monitoring]
     end
-    
+
+    %% ──────────────────── Connections ────────────────────
     UA --> A
-    A --> T
-    A --> W
-    A --> CP
-    A --> PM
-    
-    A --> O
-    A --> C
-    A --> API
-    
-    A --> PO
-    A --> PG
-    A --> PA
-    A --> PL
-    A --> PC
-    
-    A --> MI
-    A --> MR
-    A --> MV
-    A --> MS
-    
+    A --> T & W & CP & PM
+    A --> O & C & API
+    A --> PO & PG & PA & PL & PC
+    A --> MI & MR & MV & MS
     A --> TC
-    TC --> TP
-    TC --> TB
-    
-    A --> AD
-    A --> AS
-    A --> AC
-    
-    PO --> LLM
-    PG --> LLM
-    PA --> LLM
-    PL --> LLM
-    
-    MR --> DB
-    MV --> DB
-    MS --> DB
-    
+    TC --> TP & TBb
+    A --> AD & AS & AC
+
+    %% Provider → LLM
+    PO & PG & PA & PL --> LLM
+    %% Memory → DB
+    MR & MV & MS --> DB
+    %% Observability → Metrics
     O --> MM
+
 ```
 
 ### Core Subsystems
@@ -994,6 +991,6 @@ Whether you're building a simple chatbot, a complex multi-agent system, or integ
 
 - [Installation Guide](getting-started/installation.md): Get started with FastADK
 - [Quick Start](getting-started/quick-start.md): Build your first agent
-- [Examples](../examples/): Explore real-world examples
-- [API Reference](api/): Detailed documentation of the API
+- [Examples](examples/index.md): Explore real-world examples
+- [API Reference](api/core/agent.md): Detailed documentation of the API
 - [Cookbook](cookbook.md): Common patterns and recipes

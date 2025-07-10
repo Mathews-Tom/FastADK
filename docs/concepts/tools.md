@@ -286,4 +286,4 @@ async def complete_purchase(self, product_id: str, quantity: int, customer_id: s
 
 Tools are the primary way for FastADK agents to interact with the world and perform useful tasks. By designing tools carefully and following best practices, you can create agents that are capable of solving complex problems by combining reasoning with action.
 
-For practical examples of tool implementations, see the [Examples](../examples/) section.
+For practical examples of tool implementations, see the [Examples](../examples/index.md) section.

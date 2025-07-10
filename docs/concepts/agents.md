@@ -19,7 +19,7 @@ Agents encapsulate a language model (LLM) along with tools it can use to perform
 
 ## Agent Architecture
 
-![Agent Architecture](../assets/agent_architecture.png)
+![Agent Architecture](../assets/FastADK-Architecture.png)
 
 An agent consists of several key components:
 
