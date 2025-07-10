@@ -32,6 +32,8 @@ jobs:
           pip install mkdocstrings-python
           pip install mkdocs-autorefs
           pip install "griffe>=0.30.0"
+          # Install the package itself in development mode
+          pip install -e .
       
       - name: Deploy docs
         run: mkdocs gh-deploy --force
