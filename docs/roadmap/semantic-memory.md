@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document tracks the implementation progress of the Semantic Memory feature as proposed in [RFC-0001](../../rfcs/0001-semantic-memory.md). Semantic memory enables agents to store, retrieve, and search information based on semantic meaning rather than exact matches.
+This document tracks the implementation progress of the Semantic Memory feature. Semantic memory enables agents to store, retrieve, and search information based on semantic meaning rather than exact matches.
 
 ## Current Status
 
