@@ -16,10 +16,10 @@ These examples demonstrate fundamental FastADK concepts and are a great starting
 
 These examples showcase more complex usage patterns and advanced features:
 
-- **Travel Assistant** - Comprehensive example with memory, tools, API integration, lifecycle hooks
+- [**Travel Assistant**](advanced/travel_assistant.md) - Comprehensive example with memory, tools, API integration, lifecycle hooks
 - [**Workflow Demo**](advanced/workflow_demo.md) - Workflow orchestration with sequential/parallel flows
-- **Batch Processing** - Efficient batch processing of multiple inputs
-- **Multi-Provider Reasoning** - Using multiple providers based on available API keys
+- [**Batch Processing**](advanced/batch_processing_demo.md) - Efficient batch processing of multiple inputs
+- [**Multi-Provider Reasoning**](advanced/multi_provider_reasoning.md) - Using multiple providers based on available API keys
 - [**Customer Support**](advanced/customer_support.md) - Building a customer support assistant
 - [**Finance Assistant**](advanced/finance_assistant.md) - Financial data analysis and reporting assistant
 

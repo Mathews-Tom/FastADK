@@ -104,6 +104,9 @@ nav:
     - Advanced:
       - Finance Assistant: examples/advanced/finance_assistant.md
       - Customer Support: examples/advanced/customer_support.md
+      - Travel Assistant: examples/advanced/travel_assistant.md
+      - Multi-Provider Reasoning: examples/advanced/multi_provider_reasoning.md
+      - Batch Processing: examples/advanced/batch_processing_demo.md
       - Workflow Demo: examples/advanced/workflow_demo.md
     - UI:
       - Streamlit Chat App: examples/ui/streamlit_chat_app.md
