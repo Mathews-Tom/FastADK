@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  <!-- Extra favicon definitions using the new assets -->
+  <link rel="icon" href="{{ 'assets/FastADK-Favicon_16.svg'|url }}" sizes="16x16">
+  <link rel="icon" href="{{ 'assets/FastADK-Favicon_32.svg'|url }}" sizes="32x32">
+  <link rel="icon" href="{{ 'assets/FastADK-Favicon_48.svg'|url }}" sizes="48x48">
+  <link rel="icon" href="{{ 'assets/FastADK-Favicon_512.svg'|url }}" sizes="512x512">
+  <link rel="apple-touch-icon" href="{{ 'assets/FastADK-Icon.png'|url }}">
+  
+  <!-- Open Graph / Social media meta tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="FastADK - Declarative AI Agents">
+  <meta property="og:description" content="Provider-Agnostic AI Agents, from Prototype to Production in Minutes">
+  <meta property="og:image" content="{{ 'assets/FastADK-Banner.png'|url }}">
+  <meta property="og:url" content="https://fastadk.dev">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  <!-- Mermaid JS -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: document.body.getAttribute('data-md-color-scheme') === 'slate' ? 'dark' : 'default',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true }
+      });
+    });
+  </script>
+  {% endblock %}
+  
+  {% block announce %}
+  <a href="https://github.com/Mathews-Tom/FastADK">
+    FastADK is open source and available on
+    <span class="twemoji">{% include ".icons/fontawesome/brands/github.svg" %}</span> GitHub
+  </a>
+{% endblock %}
