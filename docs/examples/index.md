@@ -6,47 +6,47 @@ This document provides an organized index of all examples available in the FastA
 
 These examples demonstrate fundamental FastADK concepts and are a great starting point:
 
-- [**Weather Agent**](examples/basic/weather_agent.md) - Core agent functionality with real API integration (wttr.in)
-- [**Exception Handling**](examples/basic/exception_demo.md) - Comprehensive exception handling and error management
-- [**Token Tracking**](examples/basic/token_tracking_demo.md) - Token usage tracking and cost estimation
-- [**LiteLLM Integration**](examples/basic/litellm_demo.md) - Integration with LiteLLM for provider flexibility
-- [**Reasoning Demo**](examples/basic/reasoning_demo.md) - Chain-of-thought reasoning with visible tool selection
+- [**Weather Agent**](basic/weather_agent.md) - Core agent functionality with real API integration (wttr.in)
+- [**Exception Handling**](basic/exception_demo.md) - Comprehensive exception handling and error management
+- [**Token Tracking**](basic/token_tracking_demo.md) - Token usage tracking and cost estimation
+- [**LiteLLM Integration**](basic/litellm_demo.md) - Integration with LiteLLM for provider flexibility
+- [**Reasoning Demo**](basic/reasoning_demo.md) - Chain-of-thought reasoning with visible tool selection
 
 ## Advanced Examples
 
 These examples showcase more complex usage patterns and advanced features:
 
-- [**Travel Assistant**](examples/advanced/travel_assistant.py) - Comprehensive example with memory, tools, API integration, lifecycle hooks
-- [**Workflow Demo**](examples/advanced/workflow_demo.md) - Workflow orchestration with sequential/parallel flows
-- [**Batch Processing**](examples/advanced/batch_processing_demo.py)- Efficient batch processing of multiple inputs
-- [**Multi-Provider Reasoning**](examples/advanced/multi_provider_reasoning.py) - Using multiple providers based on available API keys
-- [**Customer Support**](examples/advanced/customer_support.md) - Building a customer support assistant
-- [**Finance Assistant**](examples/advanced/finance_assistant.md) - Financial data analysis and reporting assistant
+- **Travel Assistant** - Comprehensive example with memory, tools, API integration, lifecycle hooks
+- [**Workflow Demo**](advanced/workflow_demo.md) - Workflow orchestration with sequential/parallel flows
+- **Batch Processing** - Efficient batch processing of multiple inputs
+- **Multi-Provider Reasoning** - Using multiple providers based on available API keys
+- [**Customer Support**](advanced/customer_support.md) - Building a customer support assistant
+- [**Finance Assistant**](advanced/finance_assistant.md) - Financial data analysis and reporting assistant
 
 ## API Examples
 
 These examples demonstrate integrating FastADK with APIs:
 
-- [**HTTP Agent**](examples/api/http_agent.md) - Serving agents via HTTP API with FastAPI
+- [**HTTP Agent**](api/http_agent.md) - Serving agents via HTTP API with FastAPI
 
 ## UI Examples
 
 These examples show how to build user interfaces for FastADK agents:
 
-- [**Streamlit Chat App**](examples/ui/streamlit_chat_app.md) - Building interactive chat interfaces with Streamlit
+- [**Streamlit Chat App**](ui/streamlit_chat_app.md) - Building interactive chat interfaces with Streamlit
 
 ## Pattern Examples
 
 These examples demonstrate recommended patterns and practices:
 
-- [**Tool Patterns**](examples/patterns/tool_patterns.md) - Different tool development patterns (async/sync, validation)
-- [**Configuration Patterns**](examples/patterns/configuration_patterns.md) - Configuration loading from YAML, environment, etc.
+- [**Tool Patterns**](patterns/tool_patterns.md) - Different tool development patterns (async/sync, validation)
+- [**Configuration Patterns**](patterns/configuration_patterns.md) - Configuration loading from YAML, environment, etc.
 
 ## Training Examples
 
 These examples focus on model training and fine-tuning:
 
-- [**Fine Tuning Example**](examples/training/fine_tuning_example.md) - Data format conversion and fine-tuning jobs
+- [**Fine Tuning Example**](training/fine_tuning_example.md) - Data format conversion and fine-tuning jobs
 
 ## Getting Started
 
@@ -59,4 +59,4 @@ To run these examples:
 
 ## Contributing
 
-If you'd like to contribute a new example, please follow our [contribution guidelines](docs/contributing/guidelines.md) and ensure your example follows the established patterns.
+If you'd like to contribute a new example, please follow our [contribution guidelines](../contributing/guidelines.md) and ensure your example follows the established patterns.

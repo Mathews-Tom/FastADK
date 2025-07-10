@@ -32,6 +32,7 @@ jobs:
           pip install mkdocstrings-python
           pip install mkdocs-autorefs
           pip install "griffe>=0.30.0"
+          pip install black  # For formatting signatures
           # Install the package itself in development mode
           pip install -e .
       
