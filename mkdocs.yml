@@ -44,7 +44,6 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
   - pymdownx.smartsymbols
   - def_list
   - attr_list
@@ -117,6 +116,10 @@ nav:
       - Configuration Patterns: examples/patterns/configuration_patterns.md
     - Training:
       - Fine Tuning: examples/training/fine_tuning_example.md
+  - Roadmap:
+    - Overview: roadmap/index.md
+    - Semantic Memory: roadmap/semantic-memory.md
+    - Diagrams Test: roadmap/diagrams-test.md
   - Contributing:
     - Guidelines: contributing/guidelines.md
     - Development Setup: contributing/development-setup.md

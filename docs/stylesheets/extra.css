@@ -80,3 +80,34 @@ img[alt="FastADK Banner"] {
 .md-nav__item--nested .md-nav__link {
   padding-left: 0.5em;
 }
+
+/* Mermaid diagram styling */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  overflow: auto;
+}
+
+[data-md-color-scheme="slate"] .mermaid .node rect,
+[data-md-color-scheme="slate"] .mermaid .node circle,
+[data-md-color-scheme="slate"] .mermaid .node ellipse,
+[data-md-color-scheme="slate"] .mermaid .node polygon,
+[data-md-color-scheme="slate"] .mermaid .node path {
+  fill: #2a2e37 !important;
+  stroke: #88a0ce !important;
+}
+
+[data-md-color-scheme="slate"] .mermaid .label {
+  color: #c1c7d0 !important;
+}
+
+[data-md-color-scheme="slate"] .mermaid .cluster rect {
+  fill: #1e2129 !important;
+  stroke: #444c5f !important;
+}
+
+[data-md-color-scheme="slate"] .mermaid .edgeLabel {
+  background-color: #2a2e37 !important;
+  color: #c1c7d0 !important;
+}

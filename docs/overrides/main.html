@@ -15,6 +15,19 @@
   <meta property="og:image" content="{{ 'assets/FastADK-Banner.png'|url }}">
   <meta property="og:url" content="https://fastadk.dev">
   <meta name="twitter:card" content="summary_large_image">
+  
+  <!-- Mermaid JS -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: document.body.getAttribute('data-md-color-scheme') === 'slate' ? 'dark' : 'default',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true }
+      });
+    });
+  </script>
   {% endblock %}
   
   {% block announce %}
