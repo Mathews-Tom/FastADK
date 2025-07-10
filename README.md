@@ -61,6 +61,20 @@ Pluggable adapters (Discord, Slack, HTTP, custom) and dynamic plugin discovery m
 
 ## Quick Start
 
+### Install FastADK
+
+[FastADK](https://pypi.org/project/fastadk/) is now available through PyPI. Install FastADK using:
+
+```bash
+uv add fastadk
+```
+
+OR
+
+```bash
+pip install fastadk
+```
+
 ```python
 from fastadk import Agent, BaseAgent, tool
 
